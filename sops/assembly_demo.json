@@ -1,0 +1,41 @@
+{
+    "sop_name": "PCB装配演示工序",
+    "version": "1.0",
+    "steps": [
+        {
+            "step_id": 1,
+            "name": "拿取电路板",
+            "target_zone": "left_area",
+            "required_gesture": "pinch",
+            "hold_duration_sec": 1.5,
+            "required_objects": [
+                {"class_name": "circuit_board", "min_count": 1, "target_zone": "left_area"}
+            ],
+            "description": "从左侧物料区拿取空白电路板"
+        },
+        {
+            "step_id": 2,
+            "name": "放置到工作台",
+            "target_zone": "center_area",
+            "required_gesture": "open",
+            "hold_duration_sec": 1.0,
+            "description": "将电路板放置到中央工作台"
+        },
+        {
+            "step_id": 3,
+            "name": "安装元件",
+            "target_zone": "center_area",
+            "required_gesture": "pinch",
+            "hold_duration_sec": 2.0,
+            "description": "在电路板上安装电子元件"
+        },
+        {
+            "step_id": 4,
+            "name": "放入成品区",
+            "target_zone": "right_area",
+            "required_gesture": "open",
+            "hold_duration_sec": 1.0,
+            "description": "将成品放入右侧成品区"
+        }
+    ]
+}
