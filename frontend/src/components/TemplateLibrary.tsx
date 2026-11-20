@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../utils/api'
 import type { MarketModel, MarketTemplate, MarketTemplateDetail } from '../types'
 import TemplatePreview from './TemplatePreview'
+import TemplateEditor from './TemplateEditor'
 
 interface TemplateLibraryProps {
   canEdit: boolean
@@ -16,6 +17,7 @@ export default function TemplateLibrary({ canEdit, onApplied }: TemplateLibraryP
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showEditor, setShowEditor] = useState(false)
 
   const load = useCallback(async () => {
     const [templateResp, modelResp] = await Promise.all([
@@ -86,7 +88,25 @@ export default function TemplateLibrary({ canEdit, onApplied }: TemplateLibraryP
             {item}
           </button>
         ))}
+        <button
+          type="button"
+          className={`template-chip create ${showEditor ? 'active' : ''}`}
+          onClick={() => setShowEditor((value) => !value)}
+        >
+          {showEditor ? '收起编辑器' : '＋ 新建模板'}
+        </button>
       </div>
+
+      {showEditor && (
+        <TemplateEditor
+          onCancel={() => setShowEditor(false)}
+          onSaved={() => {
+            setShowEditor(false)
+            setMessage('模板已保存，可在列表中查看并应用')
+            void load()
+          }}
+        />
+      )}
 
       {error && <div className="tenant-alert error">{error}</div>}
       {message && <div className="tenant-alert ok">{message}</div>}

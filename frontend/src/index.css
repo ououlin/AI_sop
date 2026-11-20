@@ -1895,3 +1895,73 @@ body { overflow: auto; background: #0c1117; }
 .trend-dot { fill: var(--green); }
 .trend-x-label { fill: var(--text-dim); font-size: 9px; text-anchor: middle; }
 .trend-empty { color: var(--text-dim); font-size: 12px; padding: 20px; text-align: center; }
+
+/* ===== 模板编辑器 ===== */
+.tpl-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  background: rgba(20, 27, 36, 0.6);
+}
+.tpl-editor-head { display: flex; align-items: baseline; gap: 10px; }
+.tpl-editor-head h3 { margin: 0; font-size: 13px; color: var(--text); }
+.tpl-editor-head span { color: var(--text-dim); font-size: 11px; }
+.tpl-editor-meta { display: flex; flex-wrap: wrap; gap: 10px; }
+.tpl-editor-meta label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+  flex: 1 1 140px;
+}
+.tpl-editor-meta label.wide { flex: 2 1 240px; }
+.tpl-editor-meta input,
+.tpl-editor-meta select,
+.tpl-editor-steps input,
+.tpl-editor-steps select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  color: var(--text);
+  font-size: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.tpl-editor-steps td { padding: 4px 6px; }
+.tpl-editor-steps td:first-child { color: var(--text-dim); }
+.tpl-remove {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+.tpl-remove:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.tpl-remove:disabled { opacity: 0.35; cursor: not-allowed; }
+.tpl-editor-actions { display: flex; gap: 8px; align-items: center; }
+.tpl-add,
+.tpl-save,
+.tpl-cancel {
+  border: 1px solid var(--border);
+  background: var(--panel-light);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.tpl-save {
+  border-color: rgba(74, 158, 255, 0.5);
+  background: rgba(74, 158, 255, 0.16);
+  color: var(--accent);
+}
+.tpl-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.template-chip.create { border-style: dashed; color: var(--accent); }
