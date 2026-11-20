@@ -56,6 +56,7 @@ def init_app_state(app) -> None:
     from alarm.alarm_manager import AlarmManager
     from central.aggregation_server import AggregationServer
     from execution_tracker import ExecutionTracker
+    from database import SessionLocal
 
     app.state.camera = CameraService()
     app.state.detector = HandDetector()
@@ -75,3 +76,4 @@ def init_app_state(app) -> None:
 
     app.state.aggregation_server = AggregationServer()
     app.state.execution_tracker = ExecutionTracker()
+    app.state.session_factory = SessionLocal

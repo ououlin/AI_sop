@@ -92,6 +92,7 @@ class TenantApiTests(unittest.TestCase):
 
     def _build_app(self, role):
         app = FastAPI()
+        app.state.session_factory = self.Session
         session_factory = self.Session
 
         def override_get_db():

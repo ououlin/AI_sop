@@ -15,8 +15,13 @@ from collections import defaultdict
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 
+from sqlalchemy.orm import Session
+
 from dependencies import get_aggregation_server
 from auth.dependencies import require_permission
+from database import get_db
+from saas import subscription, tenant_manager
+from tenancy.context import DEFAULT_TENANT_CODE
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +32,7 @@ class StationReport(BaseModel):
     """工位上报数据"""
     station_id: str
     station_name: str = ""
+    tenant_code: str = ""           # 工位归属租户，缺省为默认租户
     status: str = "idle"              # idle / running / paused / error / offline
     sop_name: str = ""
     current_step_index: int = 0
@@ -42,6 +48,7 @@ class StationReport(BaseModel):
 
 class StationInfo(StationReport):
     """工位完整信息（含在线状态）"""
+    tenant_id: int = 0
     is_online: bool = True
     last_heartbeat: datetime = Field(default_factory=datetime.now)
     registered_at: Optional[datetime] = None
@@ -61,21 +68,24 @@ class AggregationServer:
         self._stations: Dict[str, StationInfo] = {}
         self._heartbeat_timeout = heartbeat_timeout
 
-    def register(self, station_id: str, station_name: str = "") -> StationInfo:
+    def register(
+        self, station_id: str, station_name: str = "", tenant_id: int = 0
+    ) -> StationInfo:
         """注册工位"""
         info = StationInfo(
             station_id=station_id,
             station_name=station_name or station_id,
+            tenant_id=tenant_id,
             registered_at=datetime.now(),
         )
         self._stations[station_id] = info
         logger.info("工位注册: %s (%s)", station_id, station_name)
         return info
 
-    def report(self, report: StationReport) -> StationInfo:
+    def report(self, report: StationReport, tenant_id: int = 0) -> StationInfo:
         """接收工位上报"""
         if report.station_id not in self._stations:
-            self.register(report.station_id, report.station_name)
+            self.register(report.station_id, report.station_name, tenant_id)
 
         info = self._stations[report.station_id]
         # 更新字段
@@ -108,6 +118,12 @@ class AggregationServer:
     def get_station(self, station_id: str) -> Optional[StationInfo]:
         """获取单个工位状态"""
         return self._stations.get(station_id)
+
+    def count_stations(self, tenant_id: int) -> int:
+        """统计某租户已接入的工位数量。"""
+        return sum(
+            1 for info in self._stations.values() if info.tenant_id == tenant_id
+        )
 
     def get_line_summary(self) -> dict:
         """获取产线整体摘要"""
@@ -145,13 +161,45 @@ async def report_station(
     report: StationReport,
     x_station_key: Optional[str] = Header(default=None),
     aggregation_server: AggregationServer = Depends(get_aggregation_server),
+    db: Session = Depends(get_db),
 ):
-    """工位上报状态"""
+    """工位上报状态（按租户校验订阅与工位配额）"""
     expected_key = os.getenv("STATION_API_KEY", "")
     if expected_key and x_station_key != expected_key:
         raise HTTPException(status_code=401, detail="工位密钥无效")
-    info = aggregation_server.report(report)
-    return {"ok": True, "station_id": info.station_id, "is_online": info.is_online}
+
+    tenant = tenant_manager.get_tenant(
+        db, code=report.tenant_code or DEFAULT_TENANT_CODE
+    )
+    if not tenant:
+        raise HTTPException(status_code=404, detail="工位归属租户不存在")
+
+    limits = subscription.limits_for(db, tenant.id)
+    if limits["expired"]:
+        raise HTTPException(status_code=402, detail="订阅已到期，停止接收工位上报")
+
+    existing = aggregation_server.get_station(report.station_id)
+    if existing is not None and existing.tenant_id not in (0, tenant.id):
+        raise HTTPException(status_code=409, detail="该工位已归属其他租户")
+
+    max_stations = limits["max_stations"]
+    if existing is None and max_stations is not None:
+        used = aggregation_server.count_stations(tenant.id)
+        if used >= max_stations:
+            raise HTTPException(
+                status_code=409,
+                detail="工位数量已达套餐上限 {}（当前套餐：{}）".format(
+                    max_stations, limits["plan_name"]
+                ),
+            )
+
+    info = aggregation_server.report(report, tenant.id)
+    return {
+        "ok": True,
+        "station_id": info.station_id,
+        "is_online": info.is_online,
+        "tenant_id": tenant.id,
+    }
 
 
 @router.get("/stations", dependencies=[Depends(require_permission("line:view"))])

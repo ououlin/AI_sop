@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from auth.dependencies import require_permission
 from database import get_db
-from saas import tenant_manager
+from saas import subscription, tenant_manager
 
 router = APIRouter(prefix="/tenants", tags=["租户管理"])
 
@@ -74,6 +74,7 @@ async def create_tenant(req: TenantCreateRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=409, detail=str(exc))
     except tenant_manager.TenantError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    subscription.ensure_subscription(db, tenant.id)
     return _serialize(db, tenant)
 
 
@@ -103,8 +104,11 @@ async def update_tenant(tenant_id: int, req: TenantUpdateRequest, db: Session = 
             tenant_id,
             name=req.name,
             status=req.status,
-            plan_code=req.plan_code,
         )
+        if req.plan_code:
+            subscription.set_plan(db, tenant_id, req.plan_code)
     except tenant_manager.TenantError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except subscription.SubscriptionError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return _serialize(db, tenant)

@@ -73,6 +73,23 @@ class UserDB(Base):
     last_login = Column(DateTime, nullable=True)
 
 
+class SubscriptionDB(Base):
+    """租户订阅（一个租户一条有效订阅）"""
+
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(
+        Integer, ForeignKey("tenants.id"), nullable=False, unique=True, index=True
+    )
+    plan_code = Column(String(20), nullable=False, default="free")
+    status = Column(String(20), nullable=False, default="active")
+    started_at = Column(DateTime, default=datetime.now)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
 class SOPDefinitionDB(Base):
     """SOP 定义表（名称在租户内唯一）"""
 
@@ -145,6 +162,7 @@ __all__ = [
     "ExecutionRecord",
     "SOPDefinitionDB",
     "StepRecord",
+    "SubscriptionDB",
     "TenantDB",
     "UserDB",
 ]

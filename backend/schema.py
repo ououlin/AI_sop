@@ -200,6 +200,21 @@ def _upgrade_generic(bind: Engine) -> None:
     )
 
 
+def _ensure_subscriptions(bind: Engine) -> None:
+    """为没有订阅记录的租户补一条默认套餐订阅。"""
+    with bind.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO subscriptions "
+                "(tenant_id, plan_code, status, started_at, created_at, updated_at) "
+                "SELECT t.id, COALESCE(t.plan_code, 'free'), 'active', "
+                "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP "
+                "FROM tenants t "
+                "WHERE NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.tenant_id = t.id)"
+            )
+        )
+
+
 def ensure_schema(bind: Optional[Engine] = None) -> None:
     """建表 + 幂等迁移，可重复调用。"""
     bind = bind or engine
@@ -211,6 +226,7 @@ def ensure_schema(bind: Optional[Engine] = None) -> None:
 
     Base.metadata.create_all(bind=bind)
     _ensure_default_tenant(bind)
+    _ensure_subscriptions(bind)
 
     if bind.dialect.name == "sqlite":
         _upgrade_sqlite(bind)
