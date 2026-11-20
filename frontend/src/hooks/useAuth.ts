@@ -5,11 +5,13 @@ export interface AuthData {
   role: string
   displayName: string
   permissions: string[]
+  tenant: string
+  tenantId: number
 }
 
 /**
  * 登录态管理
- * - 从 localStorage 恢复登录信息
+ * - 从 localStorage 恢复登录信息（老数据缺省补默认租户）
  * - 登录/登出同步持久化
  */
 export function useAuth() {
@@ -17,8 +19,13 @@ export function useAuth() {
     const saved = localStorage.getItem('ai_sop_auth')
     if (!saved) return null
     try {
-      const parsed = JSON.parse(saved) as AuthData
-      return { ...parsed, permissions: parsed.permissions ?? [] }
+      const parsed = JSON.parse(saved) as Partial<AuthData>
+      return {
+        ...parsed,
+        permissions: parsed.permissions ?? [],
+        tenant: parsed.tenant ?? 'default',
+        tenantId: parsed.tenantId ?? 1,
+      } as AuthData
     } catch {
       localStorage.removeItem('ai_sop_auth')
       return null
@@ -26,9 +33,17 @@ export function useAuth() {
   })
 
   const handleLogin = useCallback(
-    (token: string, role: string, displayName: string, permissions: string[]) => {
-      const authData = { token, role, displayName, permissions }
+    (
+      token: string,
+      role: string,
+      displayName: string,
+      permissions: string[],
+      tenant: string,
+      tenantId: number,
+    ) => {
+      const authData: AuthData = { token, role, displayName, permissions, tenant, tenantId }
       localStorage.setItem('ai_sop_auth', JSON.stringify(authData))
+      localStorage.removeItem('ai_sop_active_tenant')
       setAuth(authData)
     },
     [],
@@ -40,6 +55,7 @@ export function useAuth() {
       credentials: 'same-origin',
     })
     localStorage.removeItem('ai_sop_auth')
+    localStorage.removeItem('ai_sop_active_tenant')
     setAuth(null)
   }, [])
 

@@ -1563,3 +1563,117 @@ body { overflow: auto; background: #0c1117; }
   .video-view { min-height: 58vw; }
   .tool-grid .panel-card { max-height: none; }
 }
+
+/* ===== 平台管理（多租户） ===== */
+.tenant-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 12px;
+}
+.tenant-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: var(--text);
+}
+.tenant-context button,
+.tenant-actions button,
+.tenant-form button {
+  border: 1px solid var(--border);
+  background: var(--panel-light);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.tenant-context button:hover,
+.tenant-actions button:hover,
+.tenant-form button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tenant-form button[type='submit'] {
+  background: rgba(74, 158, 255, 0.16);
+  border-color: rgba(74, 158, 255, 0.5);
+  color: var(--accent);
+}
+.tenant-alert {
+  border-radius: 6px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+}
+.tenant-alert.error {
+  background: var(--critical-bg);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: var(--red);
+}
+.tenant-alert.ok {
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: var(--green);
+}
+.tenant-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.tenant-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+.tenant-table th,
+.tenant-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+.tenant-table th {
+  color: var(--text-dim);
+  font-weight: 500;
+  background: var(--panel-light);
+}
+.tenant-table tr:last-child td { border-bottom: none; }
+.tenant-table select {
+  background: var(--panel-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.tenant-status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+}
+.tenant-status.active { color: var(--green); border-color: rgba(52, 211, 153, 0.4); }
+.tenant-status.suspended { color: var(--text-dim); }
+.tenant-actions { display: flex; gap: 6px; }
+.tenant-empty { text-align: center; color: var(--text-dim); }
+.tenant-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tenant-form input,
+.tenant-form select {
+  flex: 1 1 150px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: var(--text);
+  font-size: 12px;
+}
+.tenant-form button { flex: 0 0 auto; }

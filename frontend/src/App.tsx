@@ -18,6 +18,8 @@ import Login from './components/Login'
 import LineDashboard from './components/LineDashboard'
 import ReportExport from './components/ReportExport'
 import ZoneCalibrator from './components/ZoneCalibrator'
+import TenantManagement from './components/TenantManagement'
+import { getActiveTenantId, setActiveTenantId } from './utils/api'
 import type { StatusMessage, ConnectionState } from './types'
 import './index.css'
 
@@ -84,6 +86,7 @@ export default function App() {
   const fps = status?.fps ?? 0
   const paused = status?.paused ?? sopStatus?.paused ?? true
   const can = (permission: string) => auth?.permissions.includes(permission) ?? false
+  const activeTenant = getActiveTenantId()
 
   const assistantReply = (question: string) => {
     const q = question.toLowerCase()
@@ -134,6 +137,16 @@ export default function App() {
             )}
             {paused && <span className="badge warn">已暂停</span>}
             {auth && <span className="user-chip">{auth.displayName}<button className="logout-btn" onClick={handleLogout}>退出</button></span>}
+            {auth && <span className="badge info">租户 {auth.tenant}</span>}
+            {auth && activeTenant !== null && (
+              <span className="badge warn">
+                上下文 #{activeTenant}
+                <button
+                  className="logout-btn"
+                  onClick={() => { setActiveTenantId(null); window.location.reload() }}
+                >退出</button>
+              </span>
+            )}
             <select
               className="video-source-select"
               value={videoSource}
@@ -196,6 +209,7 @@ export default function App() {
               {can('camera:view') && <section className="panel-card"><div className="section-heading"><h2>摄像头</h2></div><CameraSelector currentIndex={cameraIndex} canManage={can('camera:manage')} />{can('camera:manage') && <ZoneCalibrator videoDataUrl={dataUrl} />}</section>}
               {can('record:export') && <section className="panel-card"><div className="section-heading"><h2>质检报告</h2></div><ReportExport /></section>}
               {can('line:view') && <section className="panel-card tool-wide"><div className="section-heading"><h2>产线看板</h2></div><LineDashboard /></section>}
+              {can('tenant:manage') && <section className="panel-card tool-wide"><div className="section-heading"><h2>平台管理</h2><span>租户与套餐</span></div><TenantManagement /></section>}
               <section className="panel-card"><div className="section-heading"><h2>手部识别</h2></div><HandPanel hands={hands} connected={statusConn} /></section>
             </div>
           </details>

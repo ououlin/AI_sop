@@ -73,6 +73,42 @@ export interface SopFileEntry {
   loaded?: boolean
 }
 
+/** 租户（平台管理） */
+export interface TenantInfo {
+  id: number
+  code: string
+  name: string
+  status: 'active' | 'suspended' | string
+  plan_code: string
+  created_at: string | null
+  user_count: number | null
+}
+
+/** 套餐目录 */
+export interface PlanInfo {
+  code: string
+  name: string
+  price_month: number | null
+  max_stations: number | null
+  retention_days: number | null
+  features: string[]
+}
+
+/** 租户订阅与配额 */
+export interface SubscriptionInfo {
+  tenant_id: number
+  plan_code: string
+  plan_name: string
+  price_month: number | null
+  max_stations: number | null
+  retention_days: number | null
+  features: string[]
+  status: string
+  started_at: string | null
+  expires_at: string | null
+  expired: boolean
+}
+
 /** Toast 消息 */
 export interface ToastItem {
   id: number
