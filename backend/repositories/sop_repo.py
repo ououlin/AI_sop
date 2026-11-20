@@ -4,20 +4,32 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from db_models import SOPDefinitionDB
+from tenancy.context import get_tenant_id
 
 
 class SOPRepository:
-    def __init__(self, db: Session):
+    """SOP 访问层。
+
+    SOP 名称在租户内唯一：不同租户可以各自拥有同名工序。
+    """
+
+    def __init__(self, db: Session, tenant_id: Optional[int] = None):
         self.db = db
+        self.tenant_id = int(tenant_id) if tenant_id is not None else get_tenant_id()
+
+    def _scoped(self):
+        return self.db.query(SOPDefinitionDB).filter(
+            SOPDefinitionDB.tenant_id == self.tenant_id
+        )
 
     def get_all(self) -> List[SOPDefinitionDB]:
-        return self.db.query(SOPDefinitionDB).order_by(SOPDefinitionDB.created_at.desc()).all()
+        return self._scoped().order_by(SOPDefinitionDB.created_at.desc()).all()
 
     def get_by_name(self, name: str) -> Optional[SOPDefinitionDB]:
-        return self.db.query(SOPDefinitionDB).filter(SOPDefinitionDB.name == name).first()
+        return self._scoped().filter(SOPDefinitionDB.name == name).first()
 
     def get_by_id(self, sop_id: int) -> Optional[SOPDefinitionDB]:
-        return self.db.query(SOPDefinitionDB).filter(SOPDefinitionDB.id == sop_id).first()
+        return self._scoped().filter(SOPDefinitionDB.id == sop_id).first()
 
     def create(self, name: str, steps_json: str, version: str = "1.0") -> SOPDefinitionDB:
         existing = self.get_by_name(name)
@@ -30,6 +42,7 @@ class SOPRepository:
             return existing
 
         sop = SOPDefinitionDB(
+            tenant_id=self.tenant_id,
             name=name,
             steps_json=steps_json,
             version=version,

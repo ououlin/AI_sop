@@ -48,6 +48,7 @@ from ws_server import ClientRegistry, create_ws_router
 from logging_config import setup_logging
 from middleware.error_handler import error_handler
 from middleware.auth_middleware import AuthMiddleware
+from middleware.tenant_middleware import TenantMiddleware
 from database import init_db
 import db_models  # noqa: F401 确保ORM模型在init_db前注册到Base.metadata
 from api.v1.health import router as health_router
@@ -179,7 +180,10 @@ app.add_middleware(
 # 全局异常处理
 app.exception_handler(Exception)(error_handler)
 
-# 认证中间件（拦截 /api/v1/ 请求，校验JWT）
+# 租户中间件（内层：读取认证中间件注入的用户，解析请求租户）
+app.add_middleware(TenantMiddleware)
+
+# 认证中间件（外层：拦截 /api/v1/ 请求，校验JWT）
 app.add_middleware(AuthMiddleware)
 
 # API 版本化路由

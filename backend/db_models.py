@@ -1,21 +1,70 @@
 """
 SQLAlchemy ORM 模型
-用于数据库持久化（SOP定义、执行记录、步骤记录、用户）
+用于数据库持久化（租户、SOP定义、执行记录、步骤记录、用户）
+
+多租户约定：
+- 所有业务表通过 ``tenant_id`` 关联 ``tenants`` 表
+- 唯一约束按租户维度：(tenant_id, username) / (tenant_id, name)
+- 迁移逻辑见 ``schema.py``
 """
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from database import Base
+from tenancy.context import DEFAULT_TENANT_CODE, DEFAULT_TENANT_ID
+
+DEFAULT_TENANT_NAME = "默认租户"
+
+
+class TenantDB(Base):
+    """租户表（SaaS 隔离单元）"""
+
+    __tablename__ = "tenants"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(50), unique=True, nullable=False, index=True)
+    name = Column(String(100), nullable=False, default="")
+    status = Column(String(20), nullable=False, default="active")
+    plan_code = Column(String(20), nullable=False, default="free")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
 
 class UserDB(Base):
-    """用户表"""
+    """用户表（用户名在租户内唯一）"""
+
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "username", name="uq_users_tenant_username"),
+    )
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(50), unique=True, nullable=False, index=True)
+    tenant_id = Column(
+        Integer,
+        ForeignKey("tenants.id"),
+        nullable=False,
+        default=DEFAULT_TENANT_ID,
+        server_default=str(DEFAULT_TENANT_ID),
+        index=True,
+    )
+    username = Column(String(50), nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, default="operator")
     display_name = Column(String(100), default="")
@@ -25,10 +74,23 @@ class UserDB(Base):
 
 
 class SOPDefinitionDB(Base):
+    """SOP 定义表（名称在租户内唯一）"""
+
     __tablename__ = "sop_definitions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="uq_sop_tenant_name"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(100), unique=True, nullable=False)
+    tenant_id = Column(
+        Integer,
+        ForeignKey("tenants.id"),
+        nullable=False,
+        default=DEFAULT_TENANT_ID,
+        server_default=str(DEFAULT_TENANT_ID),
+        index=True,
+    )
+    name = Column(String(100), nullable=False)
     version = Column(String(20), default="1.0")
     steps_json = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
@@ -38,9 +100,19 @@ class SOPDefinitionDB(Base):
 
 
 class ExecutionRecord(Base):
+    """执行记录表（按租户隔离）"""
+
     __tablename__ = "execution_records"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(
+        Integer,
+        ForeignKey("tenants.id"),
+        nullable=False,
+        default=DEFAULT_TENANT_ID,
+        server_default=str(DEFAULT_TENANT_ID),
+        index=True,
+    )
     sop_id = Column(Integer, ForeignKey("sop_definitions.id"))
     sop_name = Column(String(100))
     start_time = Column(DateTime)
@@ -53,6 +125,8 @@ class ExecutionRecord(Base):
 
 
 class StepRecord(Base):
+    """步骤记录表（随执行记录级联归属租户）"""
+
     __tablename__ = "step_records"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -62,3 +136,15 @@ class StepRecord(Base):
     status = Column(String(20))
     duration = Column(Float)
     completed_at = Column(DateTime)
+
+
+__all__ = [
+    "DEFAULT_TENANT_CODE",
+    "DEFAULT_TENANT_ID",
+    "DEFAULT_TENANT_NAME",
+    "ExecutionRecord",
+    "SOPDefinitionDB",
+    "StepRecord",
+    "TenantDB",
+    "UserDB",
+]

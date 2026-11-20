@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from database import SessionLocal
+from tenancy.context import DEFAULT_TENANT_ID, get_tenant_id
 from models import StepStatus
 from repositories.record_repo import RecordRepository
 from repositories.sop_repo import SOPRepository
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 class ExecutionTracker:
     def __init__(self):
         self._lock = threading.RLock()
+        self._tenant_id: int = DEFAULT_TENANT_ID
         self._record_id: Optional[int] = None
         self._started_at: Optional[datetime] = None
         self._step_record_ids: List[int] = []
@@ -35,9 +37,10 @@ class ExecutionTracker:
                 return self._record_id
 
             definition = sop_manager.definition
+            self._tenant_id = get_tenant_id()
             db = SessionLocal()
             try:
-                sop_repo = SOPRepository(db)
+                sop_repo = SOPRepository(db, self._tenant_id)
                 source = sop_manager.source or ""
                 sop = None
                 if source.startswith("db:"):
@@ -55,7 +58,7 @@ class ExecutionTracker:
                         ),
                         definition.version,
                     )
-                record_repo = RecordRepository(db)
+                record_repo = RecordRepository(db, self._tenant_id)
                 record = record_repo.create(sop.id, definition.sop_name)
                 step_ids = []
                 statuses = []
@@ -84,7 +87,7 @@ class ExecutionTracker:
 
             db = SessionLocal()
             try:
-                repo = RecordRepository(db)
+                repo = RecordRepository(db, self._tenant_id)
                 for index, state in enumerate(recognizer.states):
                     status_value = state.status.value
                     if index >= len(self._last_statuses) or status_value == self._last_statuses[index]:
@@ -119,7 +122,7 @@ class ExecutionTracker:
                 return
             db = SessionLocal()
             try:
-                self._finalize_locked(RecordRepository(db), "interrupted")
+                self._finalize_locked(RecordRepository(db, self._tenant_id), "interrupted")
             finally:
                 db.close()
 

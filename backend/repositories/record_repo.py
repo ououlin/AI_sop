@@ -4,16 +4,29 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from db_models import ExecutionRecord, StepRecord
+from tenancy.context import get_tenant_id
 
 
 class RecordRepository:
-    def __init__(self, db: Session):
+    """执行记录访问层。
+
+    所有查询自动附加当前租户过滤；``tenant_id`` 可显式传入，
+    供后台线程（不属于 HTTP 请求上下文）复用。
+    """
+
+    def __init__(self, db: Session, tenant_id: Optional[int] = None):
         self.db = db
+        self.tenant_id = int(tenant_id) if tenant_id is not None else get_tenant_id()
+
+    def _scoped(self):
+        return self.db.query(ExecutionRecord).filter(
+            ExecutionRecord.tenant_id == self.tenant_id
+        )
 
     def get_all(self, status: Optional[str] = None, sop_name: Optional[str] = None,
                 start_time: Optional[datetime] = None, end_time: Optional[datetime] = None,
                 page: int = 1, limit: int = 20) -> Tuple[List[ExecutionRecord], int]:
-        query = self.db.query(ExecutionRecord)
+        query = self._scoped()
 
         if status:
             query = query.filter(ExecutionRecord.status == status)
@@ -33,10 +46,11 @@ class RecordRepository:
         return records, total
 
     def get_by_id(self, record_id: int) -> Optional[ExecutionRecord]:
-        return self.db.query(ExecutionRecord).filter(ExecutionRecord.id == record_id).first()
+        return self._scoped().filter(ExecutionRecord.id == record_id).first()
 
     def create(self, sop_id: Optional[int], sop_name: str) -> ExecutionRecord:
         record = ExecutionRecord(
+            tenant_id=self.tenant_id,
             sop_id=sop_id,
             sop_name=sop_name,
             start_time=datetime.now(),
