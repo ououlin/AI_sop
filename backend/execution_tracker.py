@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from database import SessionLocal
 from tenancy.context import DEFAULT_TENANT_ID, get_tenant_id
+from openplatform.webhook_manager import manager as webhook_dispatcher
 from models import StepStatus
 from repositories.record_repo import RecordRepository
 from repositories.sop_repo import SOPRepository
@@ -76,6 +77,11 @@ class ExecutionTracker:
                 self._step_record_ids = step_ids
                 self._last_statuses = statuses
                 logger.info("执行记录已开始: record_id=%d", record.id)
+                webhook_dispatcher.dispatch(
+                    self._tenant_id,
+                    "execution.started",
+                    {"record_id": record.id, "sop_name": definition.sop_name},
+                )
                 return record.id
             finally:
                 db.close()
@@ -137,6 +143,11 @@ class ExecutionTracker:
         )
         record_id = self._record_id
         repo.update_status(record_id, status, ended_at, duration)
+        webhook_dispatcher.dispatch(
+            self._tenant_id,
+            "execution.completed" if status == "completed" else "execution.failed",
+            {"record_id": record_id, "status": status, "duration_sec": duration},
+        )
         self._record_id = None
         self._started_at = None
         self._step_record_ids = []

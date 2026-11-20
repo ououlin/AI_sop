@@ -90,6 +90,36 @@ class SubscriptionDB(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
+class ApiKeyDB(Base):
+    """开放平台 API Key（只存摘要）"""
+
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    key_prefix = Column(String(16), nullable=False, index=True)
+    key_hash = Column(String(64), nullable=False, unique=True)
+    scopes = Column(Text, nullable=False, default="[]")
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.now)
+    last_used_at = Column(DateTime, nullable=True)
+
+
+class WebhookDB(Base):
+    """Webhook 订阅"""
+
+    __tablename__ = "webhook_subscriptions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    url = Column(String(500), nullable=False)
+    events = Column(Text, nullable=False, default="[]")
+    secret = Column(String(100), nullable=False, default="")
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+
 class SOPDefinitionDB(Base):
     """SOP 定义表（名称在租户内唯一）"""
 
@@ -159,7 +189,9 @@ __all__ = [
     "DEFAULT_TENANT_CODE",
     "DEFAULT_TENANT_ID",
     "DEFAULT_TENANT_NAME",
+    "ApiKeyDB",
     "ExecutionRecord",
+    "WebhookDB",
     "SOPDefinitionDB",
     "StepRecord",
     "SubscriptionDB",

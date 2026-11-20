@@ -15,7 +15,14 @@ from auth.role_checker import PUBLIC_PATHS
 logger = logging.getLogger(__name__)
 
 # 无需认证的路径前缀
-PUBLIC_PREFIXES = ("/ws/", "/assets/", "/docs", "/openapi.json", "/redoc")
+PUBLIC_PREFIXES = (
+    "/ws/",
+    "/assets/",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+    "/api/v1/open/",  # 开放平台：由 API Key 依赖校验
+)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
