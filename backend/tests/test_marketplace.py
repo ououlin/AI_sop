@@ -297,5 +297,114 @@ class ZonePresetTests(unittest.TestCase):
             zone_presets.get_preset("nope")
 
 
+
+class ModelSubmissionTests(unittest.TestCase):
+    def setUp(self):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from sqlalchemy.pool import StaticPool
+        from database import Base
+        from db_models import TenantDB
+
+        self.engine = create_engine(
+            "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        )
+        Base.metadata.create_all(self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+        db = self.Session()
+        db.add_all([
+            TenantDB(id=1, code="default", name="默认租户"),
+            TenantDB(id=2, code="acme", name="Acme"),
+        ])
+        db.commit()
+        db.close()
+
+    def _app(self, role):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from api.v1.marketplace import router
+        from database import get_db as real_get_db
+
+        app = FastAPI()
+        factory = self.Session
+
+        def override():
+            db = factory()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[real_get_db] = override
+
+        class FakeAuth(BaseHTTPMiddleware):
+            async def dispatch(self, request, call_next):
+                request.state.user = {"sub": "u", "role": role, "tid": 1}
+                return await call_next(request)
+
+        app.add_middleware(FakeAuth)
+        app.include_router(router, prefix="/api/v1")
+        return TestClient(app)
+
+    def _payload(self):
+        return {
+            "model_id": "custom-yolo",
+            "name": "社区 YOLO 变体",
+            "task": "object-detection",
+            "version": "1.0",
+            "license": "MIT",
+            "size_mb": 6.5,
+            "note": "自训练小目标模型",
+        }
+
+    def test_submit_then_approve_appears_in_catalog(self):
+        admin = self._app("admin")
+        created = admin.post("/api/v1/marketplace/models/submissions", json=self._payload())
+        self.assertEqual(created.status_code, 200, created.text)
+        self.assertEqual(created.json()["status"], "pending")
+        submission_id = created.json()["id"]
+
+        catalog = admin.get("/api/v1/marketplace/models").json()
+        self.assertNotIn("custom-yolo", [item["model_id"] for item in catalog])
+
+        platform = self._app("platform_admin")
+        reviewed = platform.post(
+            "/api/v1/marketplace/models/submissions/{}/review".format(submission_id),
+            json={"approve": True, "note": "验证通过"},
+        )
+        self.assertEqual(reviewed.status_code, 200, reviewed.text)
+        self.assertEqual(reviewed.json()["status"], "approved")
+
+        catalog = admin.get("/api/v1/marketplace/models").json()
+        self.assertIn("custom-yolo", [item["model_id"] for item in catalog])
+
+    def test_tenant_admin_cannot_review(self):
+        admin = self._app("admin")
+        created = admin.post("/api/v1/marketplace/models/submissions", json=self._payload())
+        submission_id = created.json()["id"]
+        reviewed = admin.post(
+            "/api/v1/marketplace/models/submissions/{}/review".format(submission_id),
+            json={"approve": True},
+        )
+        self.assertEqual(reviewed.status_code, 403)
+
+    def test_duplicate_pending_rejected(self):
+        admin = self._app("admin")
+        self.assertEqual(
+            admin.post("/api/v1/marketplace/models/submissions", json=self._payload()).status_code,
+            200,
+        )
+        again = admin.post("/api/v1/marketplace/models/submissions", json=self._payload())
+        self.assertEqual(again.status_code, 400)
+
+    def test_missing_fields_rejected(self):
+        admin = self._app("admin")
+        bad = admin.post(
+            "/api/v1/marketplace/models/submissions", json={"model_id": "x"}
+        )
+        self.assertEqual(bad.status_code, 422)
+
+
 if __name__ == "__main__":
     unittest.main()

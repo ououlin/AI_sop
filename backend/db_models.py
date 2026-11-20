@@ -120,6 +120,27 @@ class WebhookDB(Base):
     created_at = Column(DateTime, default=datetime.now)
 
 
+class ModelSubmissionDB(Base):
+    """社区模型提交（v1 只登记元数据）"""
+
+    __tablename__ = "model_submissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    model_id = Column(String(50), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    task = Column(String(50), nullable=False)
+    version = Column(String(20), nullable=False, default="")
+    source = Column(String(50), nullable=False, default="community")
+    license = Column(String(50), nullable=False, default="未声明")
+    size_mb = Column(Float, nullable=False, default=0.0)
+    note = Column(String(200), nullable=False, default="")
+    status = Column(String(20), nullable=False, default="pending")
+    review_note = Column(String(200), nullable=False, default="")
+    created_at = Column(DateTime, default=datetime.now)
+    reviewed_at = Column(DateTime, nullable=True)
+
+
 class CustomTemplateDB(Base):
     """租户自定义工序模板"""
 
@@ -253,6 +274,7 @@ __all__ = [
     "DEFAULT_TENANT_ID",
     "DEFAULT_TENANT_NAME",
     "ApiKeyDB",
+    "ModelSubmissionDB",
     "CustomTemplateDB",
     "DeviceCommandDB",
     "DeviceDB",

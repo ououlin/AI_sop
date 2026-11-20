@@ -8,7 +8,7 @@
 import json
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,12 @@ from auth.dependencies import require_permission
 from database import get_db
 from dependencies import get_alarm_manager, get_execution_tracker, get_sop_manager
 from execution_tracker import ExecutionTracker
-from marketplace import custom_template_manager, template_registry, zone_presets
+from marketplace import (
+    custom_template_manager,
+    model_submission_manager,
+    template_registry,
+    zone_presets,
+)
 from models import SOPDefinition
 from tenancy.context import get_tenant_id
 from repositories.sop_repo import SOPRepository
@@ -58,6 +63,22 @@ class ApplyTemplateRequest(BaseModel):
     # 应用模板时同时铺开推荐区域划分，免去首次标定
     apply_zones: bool = False
     zone_preset: str = "standard"
+
+
+class ModelSubmitRequest(BaseModel):
+    model_id: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=100)
+    task: str = Field(min_length=1, max_length=50)
+    version: str = ""
+    source: str = "community"
+    license: str = "未声明"
+    size_mb: float = 0.0
+    note: str = ""
+
+
+class ModelReviewRequest(BaseModel):
+    approve: bool
+    note: str = ""
 
 
 class CustomTemplateRequest(BaseModel):
@@ -211,10 +232,59 @@ async def list_zone_presets():
 
 
 @router.get(
+    "/models/submissions",
+    dependencies=[Depends(require_permission("sop:edit"))],
+)
+async def list_model_submissions(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """模型提交列表（平台管理员可见全部租户）"""
+    role = ((getattr(request.state, "user", None) or {}).get("role"))
+    tenant_id = None if role == "platform_admin" else get_tenant_id()
+    rows = model_submission_manager.list_submissions(db, tenant_id)
+    return [model_submission_manager.serialize(row) for row in rows]
+
+
+@router.post(
+    "/models/submissions",
+    dependencies=[Depends(require_permission("sop:edit"))],
+)
+async def submit_model(
+    req: ModelSubmitRequest,
+    db: Session = Depends(get_db),
+):
+    """提交社区模型（进入待审核）"""
+    try:
+        row = model_submission_manager.submit(db, get_tenant_id(), req.model_dump())
+    except model_submission_manager.SubmissionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return model_submission_manager.serialize(row)
+
+
+@router.post(
+    "/models/submissions/{submission_id}/review",
+    dependencies=[Depends(require_permission("tenant:manage"))],
+)
+async def review_model(
+    submission_id: int,
+    req: ModelReviewRequest,
+    db: Session = Depends(get_db),
+):
+    """审核社区模型（平台管理员）"""
+    row = model_submission_manager.review(db, submission_id, req.approve, req.note)
+    if row is None:
+        raise HTTPException(status_code=404, detail="提交不存在")
+    return model_submission_manager.serialize(row)
+
+
+@router.get(
     "/models",
     response_model=List[ModelInfo],
     dependencies=[Depends(require_permission("sop:view"))],
 )
-async def list_models():
-    """检测模型目录"""
-    return template_registry.list_models()
+async def list_models(db: Session = Depends(get_db)):
+    """检测模型目录：内置 + 已审核通过的社区模型"""
+    items = template_registry.list_models()
+    items.extend(model_submission_manager.approved_models(db))
+    return items
