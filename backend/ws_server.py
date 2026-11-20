@@ -8,6 +8,8 @@ from typing import Set
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from auth.jwt_handler import ACCESS_TOKEN_COOKIE, decode_access_token
+
 logger = logging.getLogger("ai_sop.ws")
 
 
@@ -23,8 +25,17 @@ def create_ws_router(registry: ClientRegistry) -> APIRouter:
     """创建 WebSocket 路由，绑定到给定客户端注册表"""
     router = APIRouter()
 
+    async def authenticate(ws: WebSocket) -> bool:
+        token = ws.cookies.get(ACCESS_TOKEN_COOKIE)
+        if not token or not decode_access_token(token):
+            await ws.close(code=4401, reason="authentication required")
+            return False
+        return True
+
     @router.websocket("/ws/video")
     async def ws_video(ws: WebSocket):
+        if not await authenticate(ws):
+            return
         await ws.accept()
         registry.video_clients.add(ws)
         logger.info("视频客户端已连接，当前: %d", len(registry.video_clients))
@@ -39,6 +50,8 @@ def create_ws_router(registry: ClientRegistry) -> APIRouter:
 
     @router.websocket("/ws/status")
     async def ws_status(ws: WebSocket):
+        if not await authenticate(ws):
+            return
         await ws.accept()
         registry.status_clients.add(ws)
         logger.info("状态客户端已连接，当前: %d", len(registry.status_clients))

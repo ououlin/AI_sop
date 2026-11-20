@@ -7,14 +7,16 @@ AggregationServer 实例由 app.state 持有（见 dependencies.init_app_state�
 """
 
 import logging
+import os
 from typing import Dict, List, Optional
 from datetime import datetime
 from collections import defaultdict
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field
 
 from dependencies import get_aggregation_server
+from auth.dependencies import require_permission
 
 logger = logging.getLogger(__name__)
 
@@ -141,14 +143,18 @@ router = APIRouter(tags=["line-dashboard"])
 @router.post("/station/report")
 async def report_station(
     report: StationReport,
+    x_station_key: Optional[str] = Header(default=None),
     aggregation_server: AggregationServer = Depends(get_aggregation_server),
 ):
     """工位上报状态"""
+    expected_key = os.getenv("STATION_API_KEY", "")
+    if expected_key and x_station_key != expected_key:
+        raise HTTPException(status_code=401, detail="工位密钥无效")
     info = aggregation_server.report(report)
     return {"ok": True, "station_id": info.station_id, "is_online": info.is_online}
 
 
-@router.get("/stations")
+@router.get("/stations", dependencies=[Depends(require_permission("line:view"))])
 async def list_stations(
     aggregation_server: AggregationServer = Depends(get_aggregation_server),
 ):
@@ -160,7 +166,10 @@ async def list_stations(
     }
 
 
-@router.get("/stations/{station_id}")
+@router.get(
+    "/stations/{station_id}",
+    dependencies=[Depends(require_permission("station:view"))],
+)
 async def get_station(
     station_id: str,
     aggregation_server: AggregationServer = Depends(get_aggregation_server),
@@ -172,7 +181,7 @@ async def get_station(
     return info.model_dump()
 
 
-@router.get("/line/summary")
+@router.get("/line/summary", dependencies=[Depends(require_permission("line:view"))])
 async def line_summary(
     aggregation_server: AggregationServer = Depends(get_aggregation_server),
 ):
@@ -180,7 +189,10 @@ async def line_summary(
     return aggregation_server.get_line_summary()
 
 
-@router.delete("/stations/{station_id}")
+@router.delete(
+    "/stations/{station_id}",
+    dependencies=[Depends(require_permission("station:manage"))],
+)
 async def remove_station(
     station_id: str,
     aggregation_server: AggregationServer = Depends(get_aggregation_server),

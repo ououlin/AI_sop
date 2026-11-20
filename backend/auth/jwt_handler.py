@@ -23,6 +23,7 @@ if not _user_secret:
 JWT_SECRET = _user_secret
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "24"))
+ACCESS_TOKEN_COOKIE = "ai_sop_access_token"
 
 
 def hash_password(password: str) -> str:

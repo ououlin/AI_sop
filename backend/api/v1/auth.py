@@ -6,19 +6,22 @@
 """
 
 import logging
+import os
 from typing import List, Optional
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Depends, status, Request
+from fastapi import APIRouter, HTTPException, Depends, status, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import get_db, SessionLocal
 from db_models import UserDB
 from auth.jwt_handler import (
-    hash_password, verify_password, create_access_token, decode_access_token,
+    ACCESS_TOKEN_COOKIE, JWT_EXPIRE_HOURS, hash_password, verify_password,
+    create_access_token, decode_access_token,
 )
 from auth.role_checker import Role, has_permission, get_role_permissions
+from auth.dependencies import require_permission
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +90,7 @@ def init_default_users():
 # ============ 路由 ============
 
 @router.post("/login", response_model=LoginResponse)
-async def login(req: LoginRequest, db: Session = Depends(get_db)):
+async def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     """用户登录"""
     user = db.query(UserDB).filter(UserDB.username == req.username).first()
     if not user or not verify_password(req.password, user.password_hash):
@@ -111,6 +114,15 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
         "role": user.role,
         "uid": user.id,
     })
+    response.set_cookie(
+        key=ACCESS_TOKEN_COOKIE,
+        value=token,
+        max_age=JWT_EXPIRE_HOURS * 3600,
+        httponly=True,
+        secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+        samesite="lax",
+        path="/",
+    )
 
     return LoginResponse(
         access_token=token,
@@ -118,6 +130,12 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
         display_name=user.display_name,
         permissions=list(get_role_permissions(user.role)),
     )
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie(ACCESS_TOKEN_COOKIE, path="/")
+    return {"ok": True}
 
 
 @router.get("/me", response_model=UserInfo)
@@ -145,7 +163,11 @@ async def get_me(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/users", response_model=List[UserInfo])
+@router.get(
+    "/users",
+    response_model=List[UserInfo],
+    dependencies=[Depends(require_permission("user:manage"))],
+)
 async def list_users(db: Session = Depends(get_db)):
     """获取所有用户列表"""
     users = db.query(UserDB).all()
@@ -163,7 +185,11 @@ async def list_users(db: Session = Depends(get_db)):
     ]
 
 
-@router.post("/users", response_model=UserInfo)
+@router.post(
+    "/users",
+    response_model=UserInfo,
+    dependencies=[Depends(require_permission("user:manage"))],
+)
 async def create_user(req: CreateUserRequest, db: Session = Depends(get_db)):
     """创建新用户"""
     if req.role not in [r.value for r in Role]:
@@ -191,7 +217,10 @@ async def create_user(req: CreateUserRequest, db: Session = Depends(get_db)):
     )
 
 
-@router.delete("/users/{user_id}")
+@router.delete(
+    "/users/{user_id}",
+    dependencies=[Depends(require_permission("user:manage"))],
+)
 async def delete_user(user_id: int, db: Session = Depends(get_db)):
     """删除用户"""
     user = db.query(UserDB).filter(UserDB.id == user_id).first()

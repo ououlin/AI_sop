@@ -22,11 +22,13 @@ ROLE_PERMISSIONS: dict = {
     },
     Role.SUPERVISOR: {
         "sop:execute", "sop:view", "camera:view", "video:view",
+        "sop:skip",
         "record:view:all", "record:export", "alarm:acknowledge",
         "station:view", "line:view",
     },
     Role.ADMIN: {
         "sop:execute", "sop:view", "sop:edit", "sop:delete",
+        "sop:skip",
         "camera:view", "camera:manage", "video:view",
         "record:view:all", "record:export", "record:delete",
         "alarm:acknowledge", "alarm:manage",
@@ -58,6 +60,8 @@ def get_role_permissions(role: str) -> Set[str]:
 # 公开端点（不需要认证）
 PUBLIC_PATHS = {
     "/api/v1/auth/login",
+    "/api/v1/auth/logout",
+    "/api/v1/station/report",
     "/api/v1/health",
     "/docs",
     "/openapi.json",

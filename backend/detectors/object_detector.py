@@ -32,7 +32,7 @@ def _resolve_business_class(raw_class: str) -> str:
 def _assign_zone(bbox: BoundingBox) -> str:
     """根据物体中心点判断所在工作区域"""
     cx, cy = bbox.center()
-    for zone_name, (x1, y1, x2, y2) in WORK_ZONES.items():
+    for zone_name, (x1, y1, x2, y2) in list(WORK_ZONES.items()):
         if x1 <= cx <= x2 and y1 <= cy <= y2:
             return zone_name
     return "unknown"

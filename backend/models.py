@@ -166,6 +166,9 @@ class WSStatusMessage(BaseModel):
     """状态推送消息"""
     type: str = "status"
     sop_name: str
+    source: Optional[str] = None
+    paused: bool = False
+    all_done: bool = False
     current_step_index: int                       # 当前进行步骤的索引
     steps: List[StepRuntimeState] = Field(default_factory=list)
     # 最近检测到的手部信息摘要

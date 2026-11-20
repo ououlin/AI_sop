@@ -31,6 +31,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -113,7 +114,7 @@ async def lifespan(app: FastAPI):
     logger.info("物体检测模式: %s", object_detector.mode)
 
     # 6. 工位上报（检测自调用，避免 httpx 回环）
-    station_reporter: StationReporter | None = None
+    station_reporter: Optional[StationReporter] = None
     central_url = os.getenv("CENTRAL_SERVER_URL", "")
     station_id = os.getenv("STATION_ID", "W-001")
     station_name = os.getenv("STATION_NAME", "工位1")
@@ -150,6 +151,7 @@ async def lifespan(app: FastAPI):
     # --- shutdown ---
     logger.info("系统关闭中...")
     await pipeline.stop()
+    app.state.execution_tracker.interrupt()
     if station_reporter:
         await station_reporter.stop()
     detector.close()

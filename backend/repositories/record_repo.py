@@ -35,7 +35,7 @@ class RecordRepository:
     def get_by_id(self, record_id: int) -> Optional[ExecutionRecord]:
         return self.db.query(ExecutionRecord).filter(ExecutionRecord.id == record_id).first()
 
-    def create(self, sop_id: int, sop_name: str) -> ExecutionRecord:
+    def create(self, sop_id: Optional[int], sop_name: str) -> ExecutionRecord:
         record = ExecutionRecord(
             sop_id=sop_id,
             sop_name=sop_name,
@@ -54,7 +54,7 @@ class RecordRepository:
             record.status = status
             if end_time:
                 record.end_time = end_time
-            if total_duration:
+            if total_duration is not None:
                 record.total_duration = total_duration
             self.db.commit()
             self.db.refresh(record)
@@ -81,7 +81,7 @@ class RecordRepository:
         step = self.db.query(StepRecord).filter(StepRecord.id == step_id).first()
         if step:
             step.status = status
-            if duration:
+            if duration is not None:
                 step.duration = duration
             if completed_at:
                 step.completed_at = completed_at

@@ -74,6 +74,7 @@ class ProcessingPipeline:
         object_detector = self.app.state.object_detector
         sop_manager = self.app.state.sop_manager
         alarm_manager = self.app.state.alarm_manager
+        execution_tracker = self.app.state.execution_tracker
 
         logger.info("检测线程已启动")
         while self._detection_running:
@@ -130,12 +131,16 @@ class ProcessingPipeline:
 
                 # 步骤识别与告警
                 if sop_manager.is_loaded() and not sop_manager.paused:
-                    sop_manager.recognizer.update(hands, objects)
                     rec = sop_manager.recognizer
+                    current_before_update = rec.current_step()
+                    future_match = rec.find_out_of_sequence_match(hands, objects)
+                    alarm_manager.check_sequence(current_before_update, future_match)
+                    rec.update(hands, objects)
                     alarm_manager.check_timeout(rec.states, rec.current_index)
                     current_step = rec.current_step()
                     if current_step:
                         alarm_manager.check_object_missing(current_step, objects)
+                    execution_tracker.sync(rec)
 
                 t1 = time.perf_counter()
                 logger.debug("检测耗时: %.1fms, hands=%d, objects=%d",
@@ -171,6 +176,12 @@ class ProcessingPipeline:
 
         frame = camera.get_frame()
         if frame is None:
+            with self._detection_lock:
+                hands = list(self._cached_hands)
+                objects = list(self._cached_objects)
+            await self._maybe_push_status(
+                hands, objects, False, sop_manager, alarm_manager, camera
+            )
             await asyncio.sleep(0.03)
             return
 
@@ -330,6 +341,9 @@ class ProcessingPipeline:
         rec = sop_manager.recognizer
         msg = WSStatusMessage(
             sop_name=sop_manager.definition.sop_name,
+            source=sop_manager.source,
+            paused=sop_manager.paused,
+            all_done=rec.all_done,
             current_step_index=rec.current_index,
             steps=[s.model_dump() for s in rec.states],
             hands=[h.model_dump() for h in hands],

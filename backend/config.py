@@ -5,6 +5,7 @@ AI SOP 系统全局配置
 """
 
 import os
+import json
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
@@ -94,6 +95,39 @@ OBJECT_CLASS_ALIASES: Dict[str, List[str]] = {
 # 启动时若存在则覆盖上方 WORK_ZONES 默认值。
 DATA_DIR = BASE_DIR / "data"
 ZONES_FILE = DATA_DIR / "zones.json"
+
+
+def update_work_zones(zones: Dict[str, List[float]]) -> None:
+    """Validate and replace the live zone map used by all detectors."""
+    normalized: Dict[str, Tuple[float, float, float, float]] = {}
+    for name, coords in zones.items():
+        if len(coords) != 4:
+            raise ValueError(f"区域 {name} 必须包含4个坐标")
+        x_min, y_min, x_max, y_max = (float(value) for value in coords)
+        if not all(0.0 <= value <= 1.0 for value in (x_min, y_min, x_max, y_max)):
+            raise ValueError(f"区域 {name} 坐标必须在0到1之间")
+        if x_min >= x_max or y_min >= y_max:
+            raise ValueError(f"区域 {name} 坐标范围无效")
+        normalized[name] = (x_min, y_min, x_max, y_max)
+    if not normalized:
+        raise ValueError("至少需要一个区域")
+    WORK_ZONES.clear()
+    WORK_ZONES.update(normalized)
+
+
+def load_work_zones() -> None:
+    """Load persisted calibration at startup, keeping defaults on failure."""
+    if not ZONES_FILE.exists():
+        return
+    try:
+        raw = json.loads(ZONES_FILE.read_text(encoding="utf-8"))
+        update_work_zones(raw)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        # Invalid calibration must not prevent the service from starting.
+        return
+
+
+load_work_zones()
 
 
 # ============ 全局实例 ============

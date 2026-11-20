@@ -39,6 +39,11 @@ def get_aggregation_server(request: Request):
     return request.app.state.aggregation_server
 
 
+def get_execution_tracker(request: Request):
+    """当前执行记录跟踪器"""
+    return request.app.state.execution_tracker
+
+
 def init_app_state(app) -> None:
     """
     创建所有共享服务实例并挂到 app.state。
@@ -50,6 +55,7 @@ def init_app_state(app) -> None:
     from detectors.object_detector import ObjectDetector
     from alarm.alarm_manager import AlarmManager
     from central.aggregation_server import AggregationServer
+    from execution_tracker import ExecutionTracker
 
     app.state.camera = CameraService()
     app.state.detector = HandDetector()
@@ -68,3 +74,4 @@ def init_app_state(app) -> None:
     app.state.sop_manager = SOPManager()
 
     app.state.aggregation_server = AggregationServer()
+    app.state.execution_tracker = ExecutionTracker()

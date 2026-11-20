@@ -113,9 +113,14 @@ class StationReporter:
         try:
             import httpx
             async with httpx.AsyncClient(timeout=3.0) as client:
+                headers = {}
+                station_key = os.getenv("STATION_API_KEY", "")
+                if station_key:
+                    headers["X-Station-Key"] = station_key
                 resp = await client.post(
                     f"{self.central_url}/api/v1/station/report",
                     json=payload,
+                    headers=headers,
                 )
                 if resp.status_code != 200:
                     logger.debug("工位上报响应异常: HTTP %d", resp.status_code)

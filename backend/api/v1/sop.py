@@ -5,12 +5,18 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from config import DEFAULT_SOP_FILE, WORK_ZONES, ZONE_COLORS, ZONES_FILE, DATA_DIR
-from dependencies import get_sop_manager
+from config import (
+    DEFAULT_SOP_FILE, WORK_ZONES, ZONE_COLORS, ZONES_FILE, DATA_DIR,
+    update_work_zones,
+)
+from dependencies import get_alarm_manager, get_execution_tracker, get_sop_manager
 from database import get_db
 from repositories.sop_repo import SOPRepository
-from models import SOPDefinition, SOPStep, GestureType
+from models import SOPDefinition, SOPStep
 from sop_manager import SOPManager
+from alarm.alarm_manager import AlarmManager
+from execution_tracker import ExecutionTracker
+from auth.dependencies import require_permission
 
 router = APIRouter(prefix="/sop", tags=["SOP"])
 
@@ -31,6 +37,13 @@ class ZonesUpdate(BaseModel):
     zones: List[ZoneConfig]
 
 
+class SopSaveRequest(BaseModel):
+    name: str
+    version: str = "1.0"
+    steps: List[SOPStep]
+    activate: bool = True
+
+
 def _load_zones() -> dict:
     """从持久化文件加载区域，回退到 config 默认值"""
     if ZONES_FILE.exists():
@@ -49,7 +62,7 @@ def _save_zones(zones: dict) -> None:
         json.dump(zones, f, ensure_ascii=False, indent=2)
 
 
-@router.get("/zones")
+@router.get("/zones", dependencies=[Depends(require_permission("sop:view"))])
 async def get_zones():
     """获取当前工作区域定义（归一化坐标）"""
     zones = _load_zones()
@@ -57,13 +70,16 @@ async def get_zones():
     return {"zones": zones, "colors": colors}
 
 
-@router.post("/zones")
+@router.post("/zones", dependencies=[Depends(require_permission("camera:manage"))])
 async def update_zones(req: ZonesUpdate):
     """更新工作区域定义（管理员操作，持久化到 data/zones.json）"""
     if not req.zones:
         raise HTTPException(status_code=400, detail="至少需要一个区域")
     zones = {}
     for z in req.zones:
+        values = (z.x_min, z.y_min, z.x_max, z.y_max)
+        if not all(0 <= value <= 1 for value in values):
+            raise HTTPException(status_code=400, detail=f"区域 {z.name} 坐标须在0到1之间")
         if z.x_min >= z.x_max or z.y_min >= z.y_max:
             raise HTTPException(
                 status_code=400,
@@ -71,49 +87,143 @@ async def update_zones(req: ZonesUpdate):
             )
         zones[z.name] = [z.x_min, z.y_min, z.x_max, z.y_max]
     _save_zones(zones)
+    update_work_zones(zones)
     return {"ok": True, "zones": zones}
 
 
-@router.get("/list")
-async def list_sops(sop_manager: SOPManager = Depends(get_sop_manager)):
-    return {"sops": sop_manager.list_available_sops()}
+@router.get("/list", dependencies=[Depends(require_permission("sop:view"))])
+async def list_sops(
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    db: Session = Depends(get_db),
+):
+    entries = [
+        {"key": f"file:{name}", "name": name, "source": "file"}
+        for name in sop_manager.list_available_sops()
+    ]
+    entries.extend(
+        {"key": f"db:{sop.id}", "name": sop.name, "source": "database", "version": sop.version}
+        for sop in SOPRepository(db).get_all()
+    )
+    return {
+        "sops": [entry["key"] for entry in entries],
+        "entries": entries,
+        "current_source": sop_manager.source,
+    }
 
 
-@router.post("/load")
-async def load_sop(
-    filename: str = DEFAULT_SOP_FILE,
+@router.get("/file/{filename}", dependencies=[Depends(require_permission("sop:view"))])
+async def get_sop_file(
+    filename: str,
     sop_manager: SOPManager = Depends(get_sop_manager),
 ):
-    if not sop_manager.load(filename):
-        raise HTTPException(status_code=404, detail=f"SOP文件不存在: {filename}")
-    return {"status": "loaded", "sop_name": sop_manager.definition.sop_name}
+    definition = sop_manager.read_file(filename)
+    if definition is None:
+        raise HTTPException(status_code=404, detail="SOP文件不存在或格式错误")
+    return definition.model_dump(mode="json")
 
 
-@router.post("/start")
-async def start_sop(sop_manager: SOPManager = Depends(get_sop_manager)):
+@router.post("/load", dependencies=[Depends(require_permission("sop:execute"))])
+async def load_sop(
+    source: str = f"file:{DEFAULT_SOP_FILE}",
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    execution_tracker: ExecutionTracker = Depends(get_execution_tracker),
+    alarm_manager: AlarmManager = Depends(get_alarm_manager),
+    db: Session = Depends(get_db),
+):
+    source = source if ":" in source else f"file:{source}"
+    if source.startswith("db:"):
+        try:
+            sop_id = int(source.split(":", 1)[1])
+        except ValueError:
+            raise HTTPException(status_code=400, detail="数据库SOP标识无效")
+        sop = SOPRepository(db).get_by_id(sop_id)
+        if not sop:
+            raise HTTPException(status_code=404, detail="SOP不存在")
+        definition = SOPDefinition(
+            sop_name=sop.name,
+            version=sop.version,
+            steps=json.loads(sop.steps_json),
+        )
+        execution_tracker.interrupt()
+        sop_manager.load_definition(definition, source=source)
+    elif source.startswith("file:"):
+        filename = source.split(":", 1)[1]
+        definition = sop_manager.read_file(filename)
+        if definition is None:
+            raise HTTPException(status_code=404, detail=f"SOP文件不存在或格式错误: {filename}")
+        execution_tracker.interrupt()
+        sop_manager.load(filename)
+    else:
+        raise HTTPException(status_code=400, detail="不支持的SOP来源")
+    alarm_manager.reset_execution()
+    return {
+        "status": "loaded",
+        "sop_name": sop_manager.definition.sop_name,
+        "source": sop_manager.source,
+    }
+
+
+@router.post("/start", dependencies=[Depends(require_permission("sop:execute"))])
+async def start_sop(
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    execution_tracker: ExecutionTracker = Depends(get_execution_tracker),
+    alarm_manager: AlarmManager = Depends(get_alarm_manager),
+):
+    if not sop_manager.is_loaded():
+        raise HTTPException(status_code=400, detail="未加载SOP")
+    if sop_manager.recognizer.all_done:
+        raise HTTPException(status_code=409, detail="SOP已完成，请先重置")
+    current_step = sop_manager.recognizer.current_index
+    states = sop_manager.recognizer.states
+    if current_step < len(states) and states[current_step].status.value in {
+        "timeout", "error", "unauthorized_skip",
+    }:
+        raise HTTPException(status_code=409, detail="当前执行已异常结束，请先重置")
+    if execution_tracker.active_record_id is None:
+        alarm_manager.reset_execution()
+        execution_tracker.start(sop_manager)
     sop_manager.resume()
-    return {"status": "running"}
+    return {"status": "running", "record_id": execution_tracker.active_record_id}
 
 
-@router.post("/pause")
-async def pause_sop(sop_manager: SOPManager = Depends(get_sop_manager)):
+@router.post("/pause", dependencies=[Depends(require_permission("sop:execute"))])
+async def pause_sop(
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    execution_tracker: ExecutionTracker = Depends(get_execution_tracker),
+):
+    if not sop_manager.is_loaded():
+        raise HTTPException(status_code=400, detail="未加载SOP")
     sop_manager.pause()
+    execution_tracker.sync(sop_manager.recognizer)
     return {"status": "paused"}
 
 
-@router.post("/reset")
-async def reset_sop(sop_manager: SOPManager = Depends(get_sop_manager)):
+@router.post("/reset", dependencies=[Depends(require_permission("sop:execute"))])
+async def reset_sop(
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    execution_tracker: ExecutionTracker = Depends(get_execution_tracker),
+    alarm_manager: AlarmManager = Depends(get_alarm_manager),
+):
+    execution_tracker.interrupt()
     sop_manager.reset()
+    alarm_manager.reset_execution()
     return {"status": "reset"}
 
 
-@router.post("/skip")
-async def skip_step(sop_manager: SOPManager = Depends(get_sop_manager)):
+@router.post("/skip", dependencies=[Depends(require_permission("sop:skip"))])
+async def skip_step(
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    execution_tracker: ExecutionTracker = Depends(get_execution_tracker),
+):
+    if not sop_manager.is_loaded() or sop_manager.paused:
+        raise HTTPException(status_code=409, detail="SOP未运行，不能跳过步骤")
     sop_manager.skip_current()
+    if sop_manager.recognizer:
+        execution_tracker.sync(sop_manager.recognizer)
     return {"status": "skipped"}
 
 
-@router.get("/status")
+@router.get("/status", dependencies=[Depends(require_permission("sop:view"))])
 async def get_status(sop_manager: SOPManager = Depends(get_sop_manager)):
     if not sop_manager.is_loaded():
         return {"loaded": False}
@@ -121,6 +231,7 @@ async def get_status(sop_manager: SOPManager = Depends(get_sop_manager)):
     return {
         "loaded": True,
         "sop_name": sop_manager.definition.sop_name,
+        "source": sop_manager.source,
         "paused": sop_manager.paused,
         "current_step_index": rec.current_index,
         "all_done": rec.all_done,
@@ -128,7 +239,7 @@ async def get_status(sop_manager: SOPManager = Depends(get_sop_manager)):
     }
 
 
-@router.get("/db/list")
+@router.get("/db/list", dependencies=[Depends(require_permission("sop:view"))])
 async def list_sops_db(db: Session = Depends(get_db)):
     repo = SOPRepository(db)
     sops = repo.get_all()
@@ -146,7 +257,7 @@ async def list_sops_db(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/db/{sop_id}")
+@router.get("/db/{sop_id}", dependencies=[Depends(require_permission("sop:view"))])
 async def get_sop_db(sop_id: int, db: Session = Depends(get_db)):
     repo = SOPRepository(db)
     sop = repo.get_by_id(sop_id)
@@ -162,24 +273,37 @@ async def get_sop_db(sop_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/db/save")
+@router.post("/db/save", dependencies=[Depends(require_permission("sop:edit"))])
 async def save_sop_db(
-    name: str,
-    steps_json: str,
-    version: str = "1.0",
+    req: SopSaveRequest,
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    execution_tracker: ExecutionTracker = Depends(get_execution_tracker),
+    alarm_manager: AlarmManager = Depends(get_alarm_manager),
     db: Session = Depends(get_db),
 ):
+    definition = SOPDefinition(sop_name=req.name, version=req.version, steps=req.steps)
     repo = SOPRepository(db)
-    try:
-        json.loads(steps_json)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="steps_json 格式错误")
-    sop = repo.create(name, steps_json, version)
-    return {"id": sop.id, "name": sop.name, "version": sop.version}
+    steps_json = json.dumps(
+        [step.model_dump(mode="json") for step in definition.steps],
+        ensure_ascii=False,
+    )
+    sop = repo.create(req.name, steps_json, req.version)
+    source = f"db:{sop.id}"
+    if req.activate:
+        execution_tracker.interrupt()
+        sop_manager.load_definition(definition, source=source)
+        alarm_manager.reset_execution()
+    return {"id": sop.id, "name": sop.name, "version": sop.version, "source": source}
 
 
-@router.delete("/db/{sop_id}")
-async def delete_sop_db(sop_id: int, db: Session = Depends(get_db)):
+@router.delete("/db/{sop_id}", dependencies=[Depends(require_permission("sop:delete"))])
+async def delete_sop_db(
+    sop_id: int,
+    sop_manager: SOPManager = Depends(get_sop_manager),
+    db: Session = Depends(get_db),
+):
+    if sop_manager.source == f"db:{sop_id}":
+        raise HTTPException(status_code=409, detail="不能删除当前已加载的SOP")
     repo = SOPRepository(db)
     if not repo.delete(sop_id):
         raise HTTPException(status_code=404, detail="SOP不存在")

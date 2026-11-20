@@ -6,11 +6,15 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from repositories.record_repo import RecordRepository
+from auth.dependencies import require_any_permission
 
 router = APIRouter(prefix="/records", tags=["执行记录"])
 
 
-@router.get("/")
+@router.get(
+    "/",
+    dependencies=[Depends(require_any_permission("record:view:own", "record:view:all"))],
+)
 async def get_records(
     status: Optional[str] = None,
     sop_name: Optional[str] = None,
@@ -60,7 +64,10 @@ async def get_records(
     }
 
 
-@router.get("/{record_id}")
+@router.get(
+    "/{record_id}",
+    dependencies=[Depends(require_any_permission("record:view:own", "record:view:all"))],
+)
 async def get_record_detail(record_id: int, db: Session = Depends(get_db)):
     repo = RecordRepository(db)
     record = repo.get_by_id(record_id)

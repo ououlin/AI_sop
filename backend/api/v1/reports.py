@@ -19,6 +19,7 @@ from reports.pdf_renderer import render_pdf_report
 from reports.excel_renderer import render_excel_report
 from sop_manager import SOPManager
 from alarm.alarm_manager import AlarmManager
+from auth.dependencies import require_permission
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ def _get_report_data(
     )
 
 
-@router.post("/generate")
+@router.post("/generate", dependencies=[Depends(require_permission("record:export"))])
 async def generate_report(
     req: GenerateReportRequest,
     sop_manager: SOPManager = Depends(get_sop_manager),
@@ -64,7 +65,11 @@ async def generate_report(
     return _get_report_data(req, sop_manager, alarm_manager)
 
 
-@router.post("/export/text", response_class=PlainTextResponse)
+@router.post(
+    "/export/text",
+    response_class=PlainTextResponse,
+    dependencies=[Depends(require_permission("record:export"))],
+)
 async def export_text_report(
     req: GenerateReportRequest,
     sop_manager: SOPManager = Depends(get_sop_manager),
@@ -81,7 +86,7 @@ async def export_text_report(
     )
 
 
-@router.post("/export/csv")
+@router.post("/export/csv", dependencies=[Depends(require_permission("record:export"))])
 async def export_csv_report(
     req: GenerateReportRequest,
     sop_manager: SOPManager = Depends(get_sop_manager),
@@ -112,7 +117,7 @@ async def export_csv_report(
     )
 
 
-@router.post("/export/pdf")
+@router.post("/export/pdf", dependencies=[Depends(require_permission("record:export"))])
 async def export_pdf_report(
     req: GenerateReportRequest,
     sop_manager: SOPManager = Depends(get_sop_manager),
@@ -132,7 +137,7 @@ async def export_pdf_report(
     )
 
 
-@router.post("/export/excel")
+@router.post("/export/excel", dependencies=[Depends(require_permission("record:export"))])
 async def export_excel_report(
     req: GenerateReportRequest,
     sop_manager: SOPManager = Depends(get_sop_manager),
@@ -152,7 +157,7 @@ async def export_excel_report(
     )
 
 
-@router.get("/alarms")
+@router.get("/alarms", dependencies=[Depends(require_permission("station:view"))])
 async def get_alarms(alarm_manager: AlarmManager = Depends(get_alarm_manager)):
     """获取告警历史"""
     return {
@@ -161,7 +166,10 @@ async def get_alarms(alarm_manager: AlarmManager = Depends(get_alarm_manager)):
     }
 
 
-@router.post("/alarms/{alarm_id}/acknowledge")
+@router.post(
+    "/alarms/{alarm_id}/acknowledge",
+    dependencies=[Depends(require_permission("alarm:acknowledge"))],
+)
 async def acknowledge_alarm(
     alarm_id: str,
     alarm_manager: AlarmManager = Depends(get_alarm_manager),
@@ -172,7 +180,7 @@ async def acknowledge_alarm(
     raise HTTPException(status_code=404, detail="告警不存在或已确认")
 
 
-@router.delete("/alarms")
+@router.delete("/alarms", dependencies=[Depends(require_permission("alarm:manage"))])
 async def clear_alarms(alarm_manager: AlarmManager = Depends(get_alarm_manager)):
     """清除所有活跃告警"""
     alarm_manager.clear_active()

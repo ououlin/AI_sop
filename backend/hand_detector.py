@@ -245,7 +245,7 @@ class HandDetector:
 
     # ========== 区域判定 ==========
     def _locate_zone(self, x: float, y: float) -> str:
-        for zone_name, (x1, y1, x2, y2) in WORK_ZONES.items():
+        for zone_name, (x1, y1, x2, y2) in list(WORK_ZONES.items()):
             if x1 <= x <= x2 and y1 <= y <= y2:
                 return zone_name
         return "unknown"
@@ -259,7 +259,7 @@ class HandDetector:
         h, w = frame.shape[:2]
         if HandDetector._zone_cache is None or HandDetector._zone_cache_shape != (h, w):
             overlay = np.zeros((h, w, 3), dtype=np.uint8)
-            for zone_name, (x1, y1, x2, y2) in WORK_ZONES.items():
+            for zone_name, (x1, y1, x2, y2) in list(WORK_ZONES.items()):
                 pt1 = (int(x1 * w), int(y1 * h))
                 pt2 = (int(x2 * w), int(y2 * h))
                 color = ZONE_COLORS.get(zone_name, (200, 200, 200))
@@ -267,7 +267,7 @@ class HandDetector:
             HandDetector._zone_cache = overlay
             HandDetector._zone_cache_shape = (h, w)
         cv2.addWeighted(HandDetector._zone_cache, 0.15, frame, 0.85, 0, frame)
-        for zone_name, (x1, y1, x2, y2) in WORK_ZONES.items():
+        for zone_name, (x1, y1, x2, y2) in list(WORK_ZONES.items()):
             pt1 = (int(x1 * w), int(y1 * h))
             cv2.putText(frame, zone_name, (pt1[0] + 8, pt1[1] + 22),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)

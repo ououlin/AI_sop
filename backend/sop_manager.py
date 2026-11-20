@@ -7,6 +7,7 @@ SOP 管理器
 
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Optional, List
 
@@ -24,48 +25,74 @@ class SOPManager:
         self._definition: Optional[SOPDefinition] = None
         self._recognizer: Optional[StepRecognizer] = None
         self._current_file: Optional[str] = None
-        self._paused = False
+        self._source: Optional[str] = None
+        self._paused = True
+        self._paused_at: Optional[float] = None
 
     # ---------- 加载 ----------
+    def read_file(self, filename: str) -> Optional[SOPDefinition]:
+        """Read and validate a definition without changing runtime state."""
+        if Path(filename).name != filename or not filename.lower().endswith(".json"):
+            return None
+        path = SOPS_DIR / filename
+        if not path.is_file():
+            return None
+        try:
+            return SOPDefinition(**json.loads(path.read_text(encoding="utf-8")))
+        except Exception as exc:
+            logger.error("读取 SOP 失败: %s -> %s", path, exc)
+            return None
+
     def load(self, filename: str = DEFAULT_SOP_FILE) -> bool:
         """从 sops/ 目录加载 SOP JSON 文件"""
-        path = SOPS_DIR / filename
-        if not path.exists():
-            logger.error("SOP 文件不存在: %s", path)
-            return False
-
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-            self._definition = SOPDefinition(**raw)
+        definition = self.read_file(filename)
+        if definition is not None:
+            self.load_definition(definition, source=f"file:{filename}")
             self._current_file = filename
-            self._recognizer = StepRecognizer(self._definition.steps)
-            self._paused = False
             logger.info(
                 "已加载 SOP: %s (共 %d 步)",
                 self._definition.sop_name, len(self._definition.steps),
             )
             return True
-        except Exception as e:
-            logger.error("加载 SOP 失败: %s -> %s", path, e)
-            return False
+        return False
+
+    def load_definition(self, definition: SOPDefinition, source: str = "database") -> None:
+        """Load an already validated definition into the runtime engine."""
+        self._definition = definition
+        self._recognizer = StepRecognizer(definition.steps)
+        self._current_file = None
+        self._source = source
+        self._paused = True
+        self._paused_at = None
 
     # ---------- 控制接口 ----------
     def reset(self):
         if self._recognizer:
             self._recognizer.reset()
-            self._paused = False
+            self._paused = True
+            self._paused_at = None
             logger.info("SOP 已重置")
 
-    def skip_current(self):
+    def skip_current(self, authorized: bool = True):
         if self._recognizer and not self._paused:
-            self._recognizer.skip_current()
+            self._recognizer.skip_current(authorized=authorized)
 
     def pause(self):
+        if self._paused:
+            return
         self._paused = True
+        self._paused_at = time.monotonic()
+        if self._recognizer:
+            self._recognizer.suspend_timing()
         logger.info("SOP 已暂停")
 
     def resume(self):
+        if not self._paused:
+            return
+        if self._paused_at is not None and self._recognizer:
+            self._recognizer.resume_timing(time.monotonic() - self._paused_at)
         self._paused = False
+        self._paused_at = None
         logger.info("SOP 已恢复")
 
     @property
@@ -84,6 +111,10 @@ class SOPManager:
     @property
     def current_file(self) -> Optional[str]:
         return self._current_file
+
+    @property
+    def source(self) -> Optional[str]:
+        return self._source
 
     def list_available_sops(self) -> List[str]:
         """列出 sops/ 目录下所有可用 SOP 文件"""

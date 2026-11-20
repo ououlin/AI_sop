@@ -9,7 +9,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from auth.jwt_handler import decode_access_token
+from auth.jwt_handler import ACCESS_TOKEN_COOKIE, decode_access_token
 from auth.role_checker import PUBLIC_PATHS
 
 logger = logging.getLogger(__name__)
@@ -30,14 +30,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if any(path.startswith(prefix) for prefix in PUBLIC_PREFIXES):
             return await call_next(request)
 
-        # 提取 Bearer Token
+        # API 客户端优先使用 Bearer；浏览器媒体请求使用 HttpOnly Cookie。
         auth_header = request.headers.get("authorization", "")
-        if not auth_header.startswith("Bearer "):
+        token = auth_header[7:] if auth_header.startswith("Bearer ") else None
+        token = token or request.cookies.get(ACCESS_TOKEN_COOKIE)
+        if not token:
             return JSONResponse(
                 {"error": "未提供认证Token", "code": 401},
                 status_code=401,
             )
-        token = auth_header[7:]
         payload = decode_access_token(token)
         if not payload:
             return JSONResponse(

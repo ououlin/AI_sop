@@ -20,6 +20,7 @@ from models import (
 )
 from config import WORK_ZONES
 from alarm.notifiers import BaseNotifier, LogNotifier, WebhookNotifier, SoundNotifier
+from step_recognizer import _class_matches
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,13 @@ class AlarmManager:
             self._active_alarms.clear()
             self._timeout_flags.clear()
 
+    def reset_execution(self):
+        """Clear alarms and deduplication flags before a new execution."""
+        with self._lock:
+            self._active_alarms.clear()
+            self._history.clear()
+            self._timeout_flags.clear()
+
     def check_timeout(self, states: List[StepRuntimeState], current_index: int):
         """检查当前步骤是否超时"""
         if current_index >= len(states):
@@ -161,7 +169,7 @@ class AlarmManager:
         if not current_step.required_objects:
             return
         for req in current_step.required_objects:
-            matched = [o for o in objects if o.class_name == req.class_name]
+            matched = [o for o in objects if _class_matches(o.class_name, req.class_name)]
             if req.target_zone:
                 matched = [o for o in matched if o.current_zone == req.target_zone]
             if len(matched) < req.min_count:
@@ -178,3 +186,23 @@ class AlarmManager:
                     step_id=current_step.step_id,
                     step_name=current_step.name,
                 )
+
+    def check_sequence(self, current_step, matched_future_step) -> None:
+        """Emit one warning when observations match a later step first."""
+        if current_step is None or matched_future_step is None:
+            return
+        flag_key = ("sequence", current_step.step_id, matched_future_step.step_id)
+        with self._lock:
+            if flag_key in self._timeout_flags:
+                return
+            self._timeout_flags.add(flag_key)
+        self.trigger(
+            level=AlarmLevel.WARNING,
+            type_=AlarmType.SEQUENCE_ERROR,
+            message=(
+                f"检测到顺序异常：当前应执行 [{current_step.name}]，"
+                f"但画面符合后续步骤 [{matched_future_step.name}]"
+            ),
+            step_id=current_step.step_id,
+            step_name=current_step.name,
+        )

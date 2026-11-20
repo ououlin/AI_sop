@@ -1,13 +1,19 @@
 from fastapi import APIRouter, HTTPException, Depends
 import cv2
+from pydantic import BaseModel, Field
 
 from dependencies import get_camera
 from camera_service import CameraService
+from auth.dependencies import require_permission
 
 router = APIRouter(prefix="/camera", tags=["摄像头"])
 
 
-@router.get("/list")
+class CameraSwitchRequest(BaseModel):
+    index: int = Field(ge=0, le=20)
+
+
+@router.get("/list", dependencies=[Depends(require_permission("camera:view"))])
 async def list_cameras():
     cameras = []
     for i in range(5):
@@ -20,11 +26,11 @@ async def list_cameras():
     return {"cameras": cameras}
 
 
-@router.post("/switch")
-async def switch_camera(index: int, camera: CameraService = Depends(get_camera)):
+@router.post("/switch", dependencies=[Depends(require_permission("camera:manage"))])
+async def switch_camera(req: CameraSwitchRequest, camera: CameraService = Depends(get_camera)):
     camera.stop()
-    camera.config.index = index
+    camera.config.index = req.index
     success = camera.start()
     if success:
-        return {"status": "success", "index": index}
-    raise HTTPException(status_code=400, detail=f"无法打开摄像头 {index}")
+        return {"status": "success", "index": req.index}
+    raise HTTPException(status_code=400, detail=f"无法打开摄像头 {req.index}")

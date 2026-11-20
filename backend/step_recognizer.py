@@ -13,7 +13,7 @@
 import time
 import logging
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from models import (
     HandResult, SOPStep, StepRuntimeState, StepStatus, GestureType,
@@ -92,16 +92,29 @@ class StepRecognizer:
         self._match_start_time = None
         self._step_enter_time = None
         self._all_done = False
-        now = datetime.now()
         for st in self._states:
             st.status = StepStatus.PENDING
             st.matched_duration = 0.0
             st.completed_at = None
             st.started_at = None
-        # 第一个步骤设置开始时间
-        if self._states:
-            self._states[0].started_at = now
-            self._step_enter_time = time.time()
+
+    def suspend_timing(self) -> None:
+        """Pause hold accumulation while retaining completed state."""
+        self._match_start_time = None
+        if self._current_index < len(self._states):
+            state = self._states[self._current_index]
+            if state.status == StepStatus.IN_PROGRESS:
+                state.status = StepStatus.PENDING
+                state.matched_duration = 0.0
+
+    def resume_timing(self, paused_seconds: float) -> None:
+        """Exclude paused wall-clock time from the timeout window."""
+        if self._step_enter_time is not None:
+            self._step_enter_time += paused_seconds
+        if self._current_index < len(self._states):
+            state = self._states[self._current_index]
+            if state.started_at is not None:
+                state.started_at += timedelta(seconds=paused_seconds)
 
     def skip_current(self, authorized: bool = True):
         """跳过当前步骤
@@ -205,6 +218,21 @@ class StepRecognizer:
                 return False
 
         return True
+
+    def find_out_of_sequence_match(
+        self,
+        hands: List[HandResult],
+        objects: Optional[List[ObjectDetection]] = None,
+    ) -> Optional[SOPStep]:
+        """Return a later matching step when the current step does not match."""
+        current = self.current_step()
+        detected_objects = objects or []
+        if current is None or self._check_conditions(current, hands, detected_objects):
+            return None
+        for step in self._steps[self._current_index + 1:]:
+            if self._check_conditions(step, hands, detected_objects):
+                return step
+        return None
 
     def _check_hand_condition(self, step: SOPStep, hands: List[HandResult]) -> bool:
         """检查手部条件：至少一只手满足 区域 + 手势"""
