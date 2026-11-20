@@ -1,17 +1,20 @@
 """Webhook 订阅与事件投递。
 
-v1 支持的事件：``execution.started`` / ``execution.completed`` /
-``execution.failed`` / ``alarm.triggered``。
-投递为尽力而为（3 秒超时、线程内异步），失败只记录在内存投递日志里，
-不阻塞识别主链路。
+- 事件：``execution.started`` / ``execution.completed`` / ``execution.failed``
+  （``alarm.triggered`` 已登记，v1 尚未接入投递）
+- 签名：``X-AI-SOP-Signature: sha256=<HMAC-SHA256(body, secret)>``
+- 重试：失败后按 ``retry_backoff × 尝试次数`` 退避，最多 ``max_attempts`` 次
+- 投递为线程内异步执行，失败只记录在内存日志（最近 50 条），不阻塞识别主流程
 """
 
+import hashlib
+import hmac
 import json
 import logging
 import threading
 from collections import deque
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
@@ -34,8 +37,16 @@ class WebhookError(ValueError):
 
 
 class WebhookManager:
-    def __init__(self, timeout: float = 3.0, keep: int = 50):
+    def __init__(
+        self,
+        timeout: float = 3.0,
+        keep: int = 50,
+        max_attempts: int = 3,
+        retry_backoff: float = 0.5,
+    ):
         self.timeout = timeout
+        self.max_attempts = max(1, int(max_attempts))
+        self.retry_backoff = max(0.0, float(retry_backoff))
         self._deliveries = deque(maxlen=keep)
         self._lock = threading.Lock()
 
@@ -118,8 +129,16 @@ class WebhookManager:
         finally:
             db.close()
 
+        if not subscriptions:
+            return
+
+        body = json.dumps({"event": event, "data": payload}, ensure_ascii=False).encode(
+            "utf-8"
+        )
         for subscription in subscriptions:
-            self._post(subscription.url, subscription.secret, event, payload)
+            self._deliver_with_retry(
+                subscription.url, subscription.secret, event, body
+            )
 
     @staticmethod
     def _events_of(subscription: WebhookDB) -> List[str]:
@@ -128,30 +147,48 @@ class WebhookManager:
         except json.JSONDecodeError:
             return []
 
-    def _post(self, url: str, secret: str, event: str, payload: dict) -> None:
+    def _sign(self, secret: str, body: bytes) -> str:
+        """HMAC-SHA256 签名；接收方用相同 secret 对原始 body 计算并比对。"""
+        return hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+
+    def _send_once(
+        self, url: str, secret: str, body: bytes, event: str
+    ) -> Tuple[bool, str]:
+        import httpx
+
+        headers = {"X-AI-SOP-Event": event, "Content-Type": "application/json"}
+        if secret:
+            headers["X-AI-SOP-Signature"] = "sha256={}".format(
+                self._sign(secret, body)
+            )
+        response = httpx.post(url, content=body, headers=headers, timeout=self.timeout)
+        return 200 <= response.status_code < 300, "HTTP {}".format(response.status_code)
+
+    def _deliver_with_retry(
+        self, url: str, secret: str, event: str, body: bytes
+    ) -> None:
         import time
 
         started = time.perf_counter()
+        attempts = []
         status = "failed"
         detail = ""
-        try:
-            import httpx
 
-            headers = {"X-AI-SOP-Event": event}
-            if secret:
-                headers["X-AI-SOP-Secret"] = secret
-            response = httpx.post(
-                url,
-                json={"event": event, "data": payload},
-                headers=headers,
-                timeout=self.timeout,
-            )
-            status = "ok" if 200 <= response.status_code < 300 else "failed"
-            detail = "HTTP {}".format(response.status_code)
-        except ImportError:
-            detail = "httpx 未安装"
-        except Exception as exc:  # noqa: BLE001 - 投递失败不影响主流程
-            detail = str(exc)
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                ok, message = self._send_once(url, secret, body, event)
+            except ImportError:
+                ok, message = False, "httpx 未安装"
+            except Exception as exc:  # noqa: BLE001 - 投递失败不影响主流程
+                ok, message = False, str(exc)
+
+            attempts.append({"attempt": attempt, "ok": ok, "detail": message})
+            detail = message
+            if ok:
+                status = "ok"
+                break
+            if attempt < self.max_attempts:
+                time.sleep(self.retry_backoff * attempt)
 
         with self._lock:
             self._deliveries.appendleft(
@@ -159,6 +196,7 @@ class WebhookManager:
                     "event": event,
                     "url": url,
                     "status": status,
+                    "attempts": len(attempts),
                     "detail": detail,
                     "elapsed_ms": round((time.perf_counter() - started) * 1000, 1),
                     "at": datetime.now().isoformat(timespec="seconds"),
