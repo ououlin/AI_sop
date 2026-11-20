@@ -1,0 +1,311 @@
+[
+  {
+    "template_id": "electronics-pcb-assembly",
+    "name": "PCB 贴片装配",
+    "industry": "电子装配",
+    "difficulty": "基础",
+    "summary": "抓取 PCB → 放上工作台 → 贴装元件 → 放入成品区",
+    "recommended_objects": ["circuit_board", "component"],
+    "sop": {
+      "sop_name": "PCB 贴片装配",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "抓取电路板",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "required_objects": [{"class_name": "circuit_board", "min_count": 1, "target_zone": "left_area"}],
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "从左侧物料区捏取 PCB"
+        },
+        {
+          "step_id": 2,
+          "name": "放置工作台",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将 PCB 平放在中央工作台"
+        },
+        {
+          "step_id": 3,
+          "name": "贴装元件",
+          "target_zone": "center_area",
+          "required_gesture": "pinch",
+          "required_objects": [{"class_name": "component", "min_count": 1, "target_zone": "center_area"}],
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 120,
+          "description": "捏取元件并贴装到 PCB 指定位置"
+        },
+        {
+          "step_id": 4,
+          "name": "放入成品区",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将完成件放入右侧成品区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "electronics-plugin-welding",
+    "name": "插件焊接",
+    "industry": "电子装配",
+    "difficulty": "进阶",
+    "summary": "取元件 → 插入基板 → 焊接固定 → 移入待检区",
+    "recommended_objects": ["component", "tool"],
+    "sop": {
+      "sop_name": "插件焊接",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取元件",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "required_objects": [{"class_name": "component", "min_count": 1, "target_zone": "left_area"}],
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "从物料盒捏取插件元件"
+        },
+        {
+          "step_id": 2,
+          "name": "插入基板",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "对准孔位将元件插入基板"
+        },
+        {
+          "step_id": 3,
+          "name": "焊接固定",
+          "target_zone": "center_area",
+          "required_gesture": "pinch",
+          "required_objects": [{"class_name": "tool", "min_count": 1, "target_zone": "center_area"}],
+          "hold_duration_sec": 2.5,
+          "timeout_sec": 120,
+          "description": "持焊具完成焊点固定"
+        },
+        {
+          "step_id": 4,
+          "name": "移入待检区",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将焊好的板件移入右侧待检区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "automotive-bolt-tightening",
+    "name": "螺栓拧紧",
+    "industry": "汽车零部件",
+    "difficulty": "基础",
+    "summary": "取螺栓 → 对位孔位 → 拧紧 → 放入成品区",
+    "recommended_objects": ["tool"],
+    "sop": {
+      "sop_name": "螺栓拧紧",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取螺栓",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从料盒捏取螺栓"
+        },
+        {
+          "step_id": 2,
+          "name": "对位孔位",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将螺栓对准安装孔"
+        },
+        {
+          "step_id": 3,
+          "name": "拧紧螺栓",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "required_objects": [{"class_name": "tool", "min_count": 1, "target_zone": "center_area"}],
+          "hold_duration_sec": 2.5,
+          "timeout_sec": 120,
+          "description": "持工具完成拧紧动作"
+        },
+        {
+          "step_id": 4,
+          "name": "放入成品区",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将工件放入右侧成品区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "automotive-part-assembly",
+    "name": "零件装配",
+    "industry": "汽车零部件",
+    "difficulty": "进阶",
+    "summary": "取外壳 → 放入内衬 → 合盖压合 → 放入成品区",
+    "recommended_objects": ["product"],
+    "sop": {
+      "sop_name": "零件装配",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取外壳",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "required_objects": [{"class_name": "product", "min_count": 1, "target_zone": "left_area"}],
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "从左侧取外壳件"
+        },
+        {
+          "step_id": 2,
+          "name": "放入内衬",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "将内衬放入外壳"
+        },
+        {
+          "step_id": 3,
+          "name": "合盖压合",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "压合上盖直至到位"
+        },
+        {
+          "step_id": 4,
+          "name": "放入成品区",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将成品放入右侧成品区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "food-filling-sealing",
+    "name": "灌装封口",
+    "industry": "食品包装",
+    "difficulty": "基础",
+    "summary": "取容器 → 对准灌装口 → 灌装 → 封口",
+    "recommended_objects": ["bottle"],
+    "sop": {
+      "sop_name": "灌装封口",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取容器",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "required_objects": [{"class_name": "bottle", "min_count": 1, "target_zone": "left_area"}],
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从左侧取空容器"
+        },
+        {
+          "step_id": 2,
+          "name": "对准灌装口",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将容器口对准灌装嘴"
+        },
+        {
+          "step_id": 3,
+          "name": "灌装",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 3.0,
+          "timeout_sec": 120,
+          "description": "保持容器稳定完成灌装"
+        },
+        {
+          "step_id": 4,
+          "name": "封口",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "压合封口装置完成密封"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "medical-sterile-packaging",
+    "name": "灭菌包装",
+    "industry": "医疗器械",
+    "difficulty": "进阶",
+    "summary": "取器械 → 放入灭菌袋 → 封口 → 贴标",
+    "recommended_objects": ["tool", "product"],
+    "sop": {
+      "sop_name": "灭菌包装",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取器械",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "required_objects": [{"class_name": "tool", "min_count": 1, "target_zone": "left_area"}],
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "从洁净台取器械"
+        },
+        {
+          "step_id": 2,
+          "name": "放入灭菌袋",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "将器械放入灭菌袋"
+        },
+        {
+          "step_id": 3,
+          "name": "封口",
+          "target_zone": "center_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "沿封口线完成热封"
+        },
+        {
+          "step_id": 4,
+          "name": "贴标",
+          "target_zone": "right_area",
+          "required_gesture": "point",
+          "required_objects": [{"class_name": "product", "min_count": 1, "target_zone": "right_area"}],
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "粘贴批次标签并放入右侧待发区"
+        }
+      ]
+    }
+  }
+]

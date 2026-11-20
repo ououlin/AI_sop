@@ -1,0 +1,32 @@
+[
+  {
+    "model_id": "mediapipe-hand",
+    "name": "MediaPipe Hand Landmarker",
+    "task": "hand-landmark",
+    "source": "mediapipe",
+    "license": "Apache-2.0",
+    "size_mb": 7.5,
+    "bundled": false,
+    "note": "手部 21 点骨架；缺失时启动报错并给出下载命令"
+  },
+  {
+    "model_id": "yolov8n",
+    "name": "YOLOv8 Nano",
+    "task": "object-detection",
+    "source": "ultralytics",
+    "license": "AGPL-3.0",
+    "size_mb": 6.2,
+    "bundled": false,
+    "note": "通用物体检测；未安装 ultralytics 时自动降级为颜色追踪"
+  },
+  {
+    "model_id": "color-tracker",
+    "name": "颜色追踪（内置降级）",
+    "task": "object-detection",
+    "source": "builtin",
+    "license": "项目自带",
+    "size_mb": 0,
+    "bundled": true,
+    "note": "无需模型权重，按颜色阈值粗定位，仅建议演示环境使用"
+  }
+]

@@ -19,6 +19,7 @@ import LineDashboard from './components/LineDashboard'
 import ReportExport from './components/ReportExport'
 import ZoneCalibrator from './components/ZoneCalibrator'
 import TenantManagement from './components/TenantManagement'
+import TemplateLibrary from './components/TemplateLibrary'
 import { getActiveTenantId, setActiveTenantId } from './utils/api'
 import type { StatusMessage, ConnectionState } from './types'
 import './index.css'
@@ -205,6 +206,7 @@ export default function App() {
             <summary><span>更多工作台工具</span><small>记录、SOP、摄像头与报告</small><b>展开</b></summary>
             <div className="tool-grid">
               <section className="panel-card"><div className="section-heading"><h2>SOP 管理</h2></div><SopSwitcher currentSource={currentSource} onLoad={handleLoadSop} />{can('sop:edit') && <SopEditor onSave={refreshStatus} />}</section>
+              {can('sop:view') && <section className="panel-card tool-wide"><div className="section-heading"><h2>工序模板</h2><span>行业模板一键应用</span></div><TemplateLibrary canEdit={can('sop:edit')} onApplied={refreshStatus} /></section>}
               <section className="panel-card"><div className="section-heading"><h2>执行记录</h2></div><RecordList /></section>
               {can('camera:view') && <section className="panel-card"><div className="section-heading"><h2>摄像头</h2></div><CameraSelector currentIndex={cameraIndex} canManage={can('camera:manage')} />{can('camera:manage') && <ZoneCalibrator videoDataUrl={dataUrl} />}</section>}
               {can('record:export') && <section className="panel-card"><div className="section-heading"><h2>质检报告</h2></div><ReportExport /></section>}
