@@ -12,6 +12,7 @@ class Role(str, Enum):
     OPERATOR = "operator"      # 操作员：执行SOP、查看本工位
     SUPERVISOR = "supervisor"  # 线长：查看产线看板、处理告警、导出报告
     ADMIN = "admin"            # 管理员：管理SOP、配置工位、管理用户
+    PLATFORM_ADMIN = "platform_admin"  # 平台管理员：跨租户开通与运维
 
 
 # 角色权限矩阵
@@ -33,6 +34,12 @@ ROLE_PERMISSIONS: dict = {
         "record:view:all", "record:export", "record:delete",
         "alarm:acknowledge", "alarm:manage",
         "station:view", "station:manage", "line:view",
+        "user:manage",
+    },
+    # 平台管理员只管租户与全局视图，不介入租户内的 SOP/记录操作
+    Role.PLATFORM_ADMIN: {
+        "tenant:view", "tenant:manage",
+        "station:view", "line:view",
         "user:manage",
     },
 }

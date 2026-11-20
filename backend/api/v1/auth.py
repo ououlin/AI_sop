@@ -68,29 +68,57 @@ class CreateUserRequest(BaseModel):
 # ============ 默认用户初始化 ============
 
 def init_default_users():
-    """初始化默认用户（仅当用户表为空时）"""
+    """初始化默认用户与平台管理员（幂等）"""
     db = SessionLocal()
     try:
-        if db.query(UserDB).filter(UserDB.tenant_id == get_tenant_id()).count() > 0:
-            return
-        defaults = [
-            ("admin", "admin123", Role.ADMIN, "管理员"),
-            ("supervisor", "super123", Role.SUPERVISOR, "线长"),
-            ("operator", "op123", Role.OPERATOR, "操作员"),
-        ]
-        for username, pwd, role, name in defaults:
-            user = UserDB(
-                tenant_id=get_tenant_id(),
-                username=username,
-                password_hash=hash_password(pwd),
-                role=role.value,
-                display_name=name,
-            )
-            db.add(user)
-        db.commit()
-        logger.info("默认用户已初始化: admin/supervisor/operator")
+        if db.query(UserDB).filter(UserDB.tenant_id == get_tenant_id()).count() == 0:
+            defaults = [
+                ("admin", "admin123", Role.ADMIN, "管理员"),
+                ("supervisor", "super123", Role.SUPERVISOR, "线长"),
+                ("operator", "op123", Role.OPERATOR, "操作员"),
+            ]
+            for username, pwd, role, name in defaults:
+                db.add(UserDB(
+                    tenant_id=get_tenant_id(),
+                    username=username,
+                    password_hash=hash_password(pwd),
+                    role=role.value,
+                    display_name=name,
+                ))
+            db.commit()
+            logger.info("默认用户已初始化: admin/supervisor/operator")
+        _ensure_platform_admin(db)
     finally:
         db.close()
+
+
+def _ensure_platform_admin(db: Session) -> None:
+    """按环境变量创建平台管理员账号；未配置密码时跳过。"""
+    password = os.getenv("PLATFORM_ADMIN_PASSWORD", "")
+    if not password:
+        logger.info("未配置 PLATFORM_ADMIN_PASSWORD，跳过平台管理员初始化")
+        return
+
+    username = os.getenv("PLATFORM_ADMIN_USERNAME", "platform")
+    existing = (
+        db.query(UserDB)
+        .filter(UserDB.tenant_id == get_tenant_id(), UserDB.username == username)
+        .first()
+    )
+    if existing:
+        if existing.role != Role.PLATFORM_ADMIN.value:
+            logger.warning("用户名 %s 已被非平台管理员占用，跳过初始化", username)
+        return
+
+    db.add(UserDB(
+        tenant_id=get_tenant_id(),
+        username=username,
+        password_hash=hash_password(password),
+        role=Role.PLATFORM_ADMIN.value,
+        display_name="平台管理员",
+    ))
+    db.commit()
+    logger.info("平台管理员已初始化: %s", username)
 
 
 # ============ 路由 ============
@@ -215,10 +243,13 @@ async def list_users(db: Session = Depends(get_db)):
     response_model=UserInfo,
     dependencies=[Depends(require_permission("user:manage"))],
 )
-async def create_user(req: CreateUserRequest, db: Session = Depends(get_db)):
+async def create_user(req: CreateUserRequest, request: Request, db: Session = Depends(get_db)):
     """创建新用户"""
     if req.role not in [r.value for r in Role]:
         raise HTTPException(status_code=400, detail="无效的角色")
+    current_role = (getattr(request.state, "user", None) or {}).get("role")
+    if req.role == Role.PLATFORM_ADMIN.value and current_role != Role.PLATFORM_ADMIN.value:
+        raise HTTPException(status_code=403, detail="只有平台管理员可以创建平台管理员")
 
     existing = (
         db.query(UserDB)
@@ -252,7 +283,7 @@ async def create_user(req: CreateUserRequest, db: Session = Depends(get_db)):
     "/users/{user_id}",
     dependencies=[Depends(require_permission("user:manage"))],
 )
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
+async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     """删除用户"""
     user = (
         db.query(UserDB)
@@ -261,6 +292,9 @@ async def delete_user(user_id: int, db: Session = Depends(get_db)):
     )
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
+    current_role = (getattr(request.state, "user", None) or {}).get("role")
+    if user.role == Role.PLATFORM_ADMIN.value and current_role != Role.PLATFORM_ADMIN.value:
+        raise HTTPException(status_code=403, detail="只有平台管理员可以删除平台管理员")
     if user.username == "admin":
         raise HTTPException(status_code=400, detail="不能删除管理员账户")
     db.delete(user)

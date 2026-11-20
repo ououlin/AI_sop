@@ -59,6 +59,7 @@ from api.v1.records import router as records_router
 from api.v1.auth import router as auth_router, init_default_users
 from db_models import UserDB  # noqa: F401 确保ORM模型在init_db前注册到Base.metadata
 from api.v1.reports import router as reports_router
+from api.v1.tenant import router as tenant_router
 from central.aggregation_server import router as line_router
 from agent.station_reporter import StationReporter
 
@@ -194,6 +195,7 @@ app.include_router(video_router, prefix="/api/v1")
 app.include_router(records_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(reports_router, prefix="/api/v1")
+app.include_router(tenant_router, prefix="/api/v1")
 # 中央聚合路由（产线看板）：受 ENABLE_LOCAL_AGGREGATION 控制
 if ENABLE_LOCAL_AGGREGATION:
     app.include_router(line_router, prefix="/api/v1")

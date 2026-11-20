@@ -54,7 +54,7 @@
 | **P1 核心功能增强** | ✅ 已完成 | 提升核心功能可靠性与扩展性 | [P1-核心功能增强.md](docs/P1-核心功能增强.md) |
 | **P2 识别精度与生产化** | ✅ 已完成 | 从技术Demo升级为可售产品 | [P2-体验与部署.md](docs/P2-体验与部署.md) |
 | **P3 商业化与规模化** | 🚧 进行中 | 实现商业化落地与规模化交付 | [P3-商业化与规模化.md](docs/P3-商业化与规模化.md) |
-| **P3-M1 SaaS 多租户** | 🚧 阶段 0 完成 | 租户隔离、租户管理与开通、订阅配额 | [P3-M1-多租户实施计划.md](docs/P3-M1-多租户实施计划.md) |
+| **P3-M1 SaaS 多租户** | 🚧 阶段 0-1 完成 | 租户隔离、租户管理与开通、订阅配额 | [P3-M1-多租户实施计划.md](docs/P3-M1-多租户实施计划.md) |
 
 > 各阶段文档的索引、阅读路径与撰写规范见 [docs/README.md](docs/README.md)。
 
@@ -105,6 +105,8 @@ AI_sop/
 │   │   ├── pdf_renderer.py         # PDF 报告渲染（reportlab）
 │   │   └── excel_renderer.py       # Excel 报告渲染（openpyxl）
 │   ├── repositories/               # 数据访问层
+│   ├── saas/                       # 租户管理与订阅（SaaS 能力）
+│   ├── tenancy/                    # 租户上下文
 │   ├── tests/                      # 单元测试（unittest）
 │   └── api/v1/                     # REST API 路由
 │       ├── health.py               # 健康检查
@@ -253,6 +255,8 @@ python -m unittest discover -s tests -t .
 | `PORT` | `8000` | 服务监听端口 |
 | `DATABASE_URL` | `sqlite:///backend/data/ai_sop.db` | 数据库连接串（PostgreSQL 见 P3 阶段 4） |
 | `DEFAULT_TENANT_CODE` | `default` | 默认租户编码，老数据与后台任务归属 |
+| `PLATFORM_ADMIN_USERNAME` | `platform` | 平台管理员账号（配置密码后自动创建） |
+| `PLATFORM_ADMIN_PASSWORD` | - | 平台管理员密码，留空则不创建 |
 | `CORS_ORIGINS` | dev默认 | 允许跨域来源（逗号分隔） |
 | `CAMERA_INDEX` | `0` | 摄像头索引 |
 | `CAMERA_WIDTH` / `CAMERA_HEIGHT` / `CAMERA_FPS` | `1280`/`720`/`30` | 摄像头参数 |
@@ -350,6 +354,14 @@ SOP 以 JSON 文件存放在 `sops/` 目录，也支持通过数据库管理。�
 | GET | `/api/v1/reports/alarms` | 获取告警历史 |
 | POST | `/api/v1/reports/alarms/{id}/acknowledge` | 确认告警 |
 | DELETE | `/api/v1/reports/alarms` | 清除活跃告警 |
+
+### 租户管理（平台管理员）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/tenants` | 租户列表（含用户数） |
+| POST | `/api/v1/tenants` | 开通租户并同步创建租户管理员 |
+| GET | `/api/v1/tenants/{id}` | 租户详情 |
+| PATCH | `/api/v1/tenants/{id}` | 更新名称 / 状态（active、suspended）/ 套餐 |
 
 ### 产线看板（中央聚合）
 | 方法 | 路径 | 说明 |
