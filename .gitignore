@@ -1,31 +1,50 @@
+# ========== Python ==========
 .venv/
+venv/
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 .pytest_cache/
-.idea/
-.vscode/
-*.log
-data/
-logs/
-*.db
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ========== 前端 / Node ==========
 node_modules/
 frontend/dist/
-.DS_Store
-Thumbs.db
-.env
+*.tsbuildinfo
+
+# ========== 运行时数据与日志 ==========
+*.log
 output.log
 run_err.log
 run_out.log
 backend_final.log
 backend_final_err.log
+logs/
+data/
+*.db
+*.db-journal
+
+# ========== 模型与二进制 ==========
 *.task
 *.pt
+*.onnx
+
+# ========== 环境变量与编辑器 ==========
+.env
+.env.local
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ========== 本地启动 / 调试脚本 ==========
 start.bat
 run_backend.bat
 start_server.bat
+_run_server.py
 _test_csv.py
 _test_import.py
 test_camera.py
 test_camera_quick.py
-_run_server.py
