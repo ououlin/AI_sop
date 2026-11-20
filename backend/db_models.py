@@ -181,6 +181,7 @@ class SOPDefinitionDB(Base):
     )
     name = Column(String(100), nullable=False)
     version = Column(String(20), default="1.0")
+    standard_cycle_sec = Column(Float, nullable=True)
     steps_json = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

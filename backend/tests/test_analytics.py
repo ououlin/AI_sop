@@ -1,5 +1,6 @@
 """阶段 M4：数据分析与 BI 指标测试。"""
 
+import json
 import unittest
 from datetime import datetime, timedelta
 
@@ -14,7 +15,7 @@ from analytics import metrics_calculator, trend_analyzer
 from api.v1.analytics import router as analytics_router
 from database import Base
 from database import get_db as real_get_db
-from db_models import ExecutionRecord, StepRecord, TenantDB
+from db_models import ExecutionRecord, SOPDefinitionDB, StepRecord, TenantDB
 
 
 class _AnalyticsBase(unittest.TestCase):
@@ -143,6 +144,66 @@ class TrendTests(_AnalyticsBase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["sop_name"], "装配工序")
         self.assertEqual(rows[0]["runs"], 3)
+
+
+class StandardCycleTests(_AnalyticsBase):
+    def _add_sop(self, sop_id, standard, steps=None):
+        db = self.Session()
+        db.add(SOPDefinitionDB(
+            id=sop_id,
+            tenant_id=1,
+            name="标准工序",
+            version="1.0",
+            standard_cycle_sec=standard,
+            steps_json=json.dumps(steps or []),
+        ))
+        db.commit()
+        db.close()
+
+    def _add_run_with_sop(self, sop_id, duration):
+        db = self.Session()
+        start = self.now - timedelta(minutes=30)
+        db.add(ExecutionRecord(
+            tenant_id=1,
+            sop_id=sop_id,
+            sop_name="标准工序",
+            start_time=start,
+            end_time=start + timedelta(seconds=duration),
+            status="completed",
+            total_duration=duration,
+        ))
+        db.commit()
+        db.close()
+
+    def test_explicit_standard_cycle(self):
+        self._add_sop(1, 20.0)
+        self._add_run_with_sop(1, 25.0)
+        data = metrics_calculator.compute_overview(
+            self.Session(), days=7, tenant_id=1, now=self.now
+        )
+        self.assertAlmostEqual(data["oee_detail"]["performance"], 0.8, places=4)
+        self.assertEqual(data["oee_detail"]["performance_basis"], "explicit")
+
+    def test_derived_standard_cycle(self):
+        self._add_sop(2, 0.0, steps=[
+            {"step_id": 1, "name": "a", "target_zone": "left_area", "hold_duration_sec": 5},
+            {"step_id": 2, "name": "b", "target_zone": "center_area", "hold_duration_sec": 5},
+        ])
+        self._add_run_with_sop(2, 25.0)
+        data = metrics_calculator.compute_overview(
+            self.Session(), days=7, tenant_id=1, now=self.now
+        )
+        # 派生标准 = (5 + 5) + 5 秒/步 × 2 = 20 秒 → 20 / 25 = 0.8
+        self.assertAlmostEqual(data["oee_detail"]["performance"], 0.8, places=4)
+        self.assertEqual(data["oee_detail"]["performance_basis"], "derived")
+
+    def test_relative_fallback_basis(self):
+        self._add_run(1, "completed", 25, 30)
+        self._add_run(1, "completed", 20, 20)
+        data = metrics_calculator.compute_overview(
+            self.Session(), days=7, tenant_id=1, now=self.now
+        )
+        self.assertEqual(data["oee_detail"]["performance_basis"], "relative")
 
 
 class AnalyticsApiTests(_AnalyticsBase):

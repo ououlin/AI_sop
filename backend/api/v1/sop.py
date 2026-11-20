@@ -40,6 +40,7 @@ class ZonesUpdate(BaseModel):
 class SopSaveRequest(BaseModel):
     name: str
     version: str = "1.0"
+    standard_cycle_sec: float = 0.0
     steps: List[SOPStep]
     activate: bool = True
 
@@ -281,13 +282,23 @@ async def save_sop_db(
     alarm_manager: AlarmManager = Depends(get_alarm_manager),
     db: Session = Depends(get_db),
 ):
-    definition = SOPDefinition(sop_name=req.name, version=req.version, steps=req.steps)
+    definition = SOPDefinition(
+        sop_name=req.name,
+        version=req.version,
+        standard_cycle_sec=req.standard_cycle_sec,
+        steps=req.steps,
+    )
     repo = SOPRepository(db)
     steps_json = json.dumps(
         [step.model_dump(mode="json") for step in definition.steps],
         ensure_ascii=False,
     )
-    sop = repo.create(req.name, steps_json, req.version)
+    sop = repo.create(
+        req.name,
+        steps_json,
+        req.version,
+        standard_cycle_sec=req.standard_cycle_sec or None,
+    )
     source = f"db:{sop.id}"
     if req.activate:
         execution_tracker.interrupt()

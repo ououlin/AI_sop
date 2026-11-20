@@ -103,7 +103,12 @@ async def apply_template(
         [step.model_dump(mode="json") for step in definition.steps],
         ensure_ascii=False,
     )
-    sop = SOPRepository(db).create(definition.sop_name, steps_json, definition.version)
+    sop = SOPRepository(db).create(
+        definition.sop_name,
+        steps_json,
+        definition.version,
+        standard_cycle_sec=definition.standard_cycle_sec or None,
+    )
     source = "db:{}".format(sop.id)
 
     if req.activate:

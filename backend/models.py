@@ -109,6 +109,8 @@ class SOPDefinition(BaseModel):
     """完整SOP定义"""
     sop_name: str
     version: str = "1.0"
+    # 标准节拍（秒）；0 表示未配置，报表会按步骤配置派生
+    standard_cycle_sec: float = 0.0
     steps: List[SOPStep] = Field(default_factory=list)
 
 
