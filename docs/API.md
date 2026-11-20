@@ -118,7 +118,18 @@
 
 > 工位上报 `POST /station/report` 的响应会带上 `commands`，工位据此执行并回执。
 
-## 11. WebSocket
+## 11. 数据分析
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/analytics/overview?days=7` | `record:view:all` | OEE / FPY / CT / DPMO / MTBF 汇总（1-90 天） |
+| GET | `/analytics/trend?days=14` | `record:view:all` | 按自然日的执行量、完成数、FPY、平均节拍 |
+| GET | `/analytics/steps?days=30&limit=10` | `record:view:all` | 瓶颈步骤排行（按平均耗时） |
+| GET | `/analytics/sops?days=30` | `record:view:all` | SOP 维度对比（执行量 / FPY / 节拍） |
+
+> OEE 为近似口径：可用率按统计窗口内的执行覆盖时长计算，窗口内运行时间不足时数值偏低属正常。
+
+## 12. WebSocket
 
 | 路径 | 说明 |
 |------|------|
@@ -126,7 +137,7 @@
 | `/ws/status` | 推送步骤状态更新（JSON），需登录 Cookie |
 
 
-## 12. 错误响应
+## 13. 错误响应
 
 ```json
 { "error": "未提供认证Token", "code": 401 }
@@ -138,7 +149,7 @@
 { "detail": "工位数量已达套餐上限 1（当前套餐：体验版）" }
 ```
 
-## 13. SOP 定义格式
+## 14. SOP 定义格式
 
 SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 
@@ -154,7 +165,7 @@ SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 | `steps[].required_objects` | 要求物体：`class_name` / `target_zone` / `min_count` |
 | `steps[].description` | 步骤描述 |
 
-## 14. 角色与权限
+## 15. 角色与权限
 
 | 角色 | 定位 | 权限点 |
 |------|------|--------|
