@@ -105,7 +105,10 @@
 | GET | `/marketplace/zone-presets` | `sop:view` | 可用的区域预设（standard / two_zone）与当前区域 |
 | POST | `/marketplace/templates` | `sop:edit` | 保存自定义模板（可视化编辑器入口） |
 | DELETE | `/marketplace/templates/{template_id}` | `sop:edit` | 删除自定义模板（内置模板不可删除） |
-| GET | `/marketplace/models` | `sop:view` | 检测模型目录 |
+| GET | `/marketplace/models` | `sop:view` | 检测模型目录（内置 + 已审核通过的社区模型） |
+| GET | `/marketplace/models/submissions` | `sop:edit` | 模型提交列表（平台管理员可见全部租户） |
+| POST | `/marketplace/models/submissions` | `sop:edit` | 提交社区模型（进入待审核） |
+| POST | `/marketplace/models/submissions/{id}/review` | `tenant:manage` | 审核通过 / 驳回（平台管理员） |
 
 ## 10. 设备运维
 
