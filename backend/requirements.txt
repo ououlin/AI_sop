@@ -1,5 +1,5 @@
 # AI SOP System - Python Dependencies
-# Compatible with Python 3.8+
+# Python 3.8+（开发环境 3.8.10）
 
 # Web Framework
 fastapi>=0.111.0

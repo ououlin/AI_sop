@@ -153,7 +153,7 @@ AI_sop/
 
 ## 环境要求
 
-- Python >= 3.11
+- Python 3.8+（当前开发环境 3.8.10）
 - Node.js >= 18
 - Windows（使用 MSMF 摄像头后端）
 
@@ -179,7 +179,9 @@ Invoke-WebRequest `
 ### 1. 安装后端依赖
 
 ```powershell
-cd g:\ai_sop\backend
+cd backend
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -189,7 +191,7 @@ pip install -r requirements.txt
 ### 2. 启动后端服务
 
 ```powershell
-cd g:\ai_sop\backend
+cd backend
 python main.py
 ```
 
@@ -202,7 +204,7 @@ python main.py
 ### 3. 启动前端
 
 ```powershell
-cd g:\ai_sop\frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -289,14 +291,19 @@ SOP 以 JSON 文件存放在 `sops/` 目录，也支持通过数据库管理。�
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/v1/sop/list` | 列出可用SOP |
-| POST | `/api/v1/sop/load` | 加载SOP |
+| POST | `/api/v1/sop/load` | 加载SOP（`source`：`file:xxx.json` 或 `db:{id}`） |
 | POST | `/api/v1/sop/start` | 开始/恢复 |
 | POST | `/api/v1/sop/pause` | 暂停 |
 | POST | `/api/v1/sop/reset` | 重置 |
 | POST | `/api/v1/sop/skip` | 跳过当前步骤 |
 | GET | `/api/v1/sop/status` | 获取当前状态 |
 | GET | `/api/v1/sop/zones` | 获取工作区域定义 |
-| POST | `/api/v1/sop/zones` | 更新工作区域（管理员） |
+| POST | `/api/v1/sop/zones` | 更新工作区域（管理员，立即生效） |
+| GET | `/api/v1/sop/file/{filename}` | 读取 SOP 文件内容 |
+| GET | `/api/v1/sop/db/list` | 列出数据库中的 SOP |
+| GET | `/api/v1/sop/db/{id}` | 获取数据库 SOP 详情 |
+| POST | `/api/v1/sop/db/save` | 保存 SOP 到数据库（可选立即激活） |
+| DELETE | `/api/v1/sop/db/{id}` | 删除数据库中的 SOP |
 
 ### 视频与摄像头
 | 方法 | 路径 | 说明 |
@@ -309,7 +316,8 @@ SOP 以 JSON 文件存放在 `sops/` 目录，也支持通过数据库管理。�
 ### 认证与用户（JWT）
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/v1/auth/login` | 登录获取Token |
+| POST | `/api/v1/auth/login` | 登录获取Token（同时写入 HttpOnly Cookie） |
+| POST | `/api/v1/auth/logout` | 退出登录（清除 Cookie） |
 | GET | `/api/v1/auth/me` | 获取当前用户 |
 | GET | `/api/v1/auth/users` | 用户列表（管理员） |
 | POST | `/api/v1/auth/users` | 创建用户（管理员） |
