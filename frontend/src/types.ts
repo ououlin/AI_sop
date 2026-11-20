@@ -182,6 +182,55 @@ export interface ModelVersionInfo {
   notes: string
 }
 
+/** 数据分析 */
+export interface OeeDetail {
+  availability: number
+  performance: number
+  quality: number
+}
+
+export interface AnalyticsOverview {
+  window_days: number
+  total_runs: number
+  completed_runs: number
+  failed_runs: number
+  fpy: number | null
+  cycle_time_sec: number | null
+  oee: number | null
+  oee_detail: OeeDetail
+  dpmo: number | null
+  mtbf_sec: number | null
+  defect_steps: number
+  step_opportunities: number
+  coverage_sec: number
+}
+
+export interface TrendPoint {
+  date: string
+  runs: number
+  completed: number
+  failed: number
+  fpy: number | null
+  avg_duration_sec: number | null
+}
+
+export interface StepStat {
+  step_name: string
+  count: number
+  avg_duration_sec: number | null
+  max_duration_sec: number
+  defects: number
+  defect_rate: number | null
+}
+
+export interface SopStat {
+  sop_name: string
+  runs: number
+  completed: number
+  fpy: number | null
+  avg_duration_sec: number | null
+}
+
 /** Toast 消息 */
 export interface ToastItem {
   id: number
