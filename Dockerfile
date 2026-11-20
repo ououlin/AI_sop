@@ -29,4 +29,5 @@ COPY --from=frontend /app/frontend/dist ./frontend/dist
 
 WORKDIR /app/backend
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 启动前先把数据库结构升到最新版本（幂等；已有版本记录时为空操作）
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]
