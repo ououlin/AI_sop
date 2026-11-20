@@ -95,14 +95,24 @@
 
 > 订阅到期后租户进入只读：GET 放行，写操作返回 402，续费接口例外；工位上报超过套餐上限返回 409。
 
-## 9. WebSocket
+## 9. 工序模板市场
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/marketplace/templates` | `sop:view` | 模板列表，`industry` 参数可按行业过滤 |
+| GET | `/marketplace/templates/{template_id}` | `sop:view` | 模板详情（含完整步骤） |
+| POST | `/marketplace/templates/{template_id}/apply` | `sop:edit` | 一键应用：写入本租户 SOP，`activate` 控制是否立即激活 |
+| GET | `/marketplace/models` | `sop:view` | 检测模型目录 |
+
+## 10. WebSocket
 
 | 路径 | 说明 |
 |------|------|
 | `/ws/video` | 推送带骨架标注的视频帧（JPEG 二进制），需登录 Cookie |
 | `/ws/status` | 推送步骤状态更新（JSON），需登录 Cookie |
 
-## 10. 错误响应
+
+## 11. 错误响应
 
 ```json
 { "error": "未提供认证Token", "code": 401 }
@@ -114,7 +124,7 @@
 { "detail": "工位数量已达套餐上限 1（当前套餐：体验版）" }
 ```
 
-## 11. SOP 定义格式
+## 12. SOP 定义格式
 
 SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 
@@ -130,7 +140,7 @@ SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 | `steps[].required_objects` | 要求物体：`class_name` / `target_zone` / `min_count` |
 | `steps[].description` | 步骤描述 |
 
-## 12. 角色与权限
+## 13. 角色与权限
 
 | 角色 | 定位 | 权限点 |
 |------|------|--------|
