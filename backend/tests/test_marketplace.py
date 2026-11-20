@@ -20,16 +20,33 @@ from marketplace import template_registry
 class RegistryTests(unittest.TestCase):
     def test_templates_load_and_validate(self):
         templates = template_registry.list_templates()
-        self.assertGreaterEqual(len(templates), 6)
+        self.assertGreaterEqual(len(templates), 20)
         self.assertEqual(
             template_registry.list_industries(),
             sorted(["电子装配", "汽车零部件", "食品包装", "医疗器械"]),
         )
+
+        allowed_zones = {"left_area", "center_area", "right_area", "top_area"}
         for summary in templates:
             definition = template_registry.get_definition(summary["template_id"])
             self.assertIsNotNone(definition)
             self.assertGreater(len(definition.steps), 0)
             self.assertEqual(summary["step_count"], len(definition.steps))
+
+            step_ids = [item.step_id for item in definition.steps]
+            self.assertEqual(step_ids, sorted(step_ids), summary["template_id"])
+            self.assertEqual(len(step_ids), len(set(step_ids)), summary["template_id"])
+
+            for item in definition.steps:
+                self.assertIn(item.target_zone, allowed_zones, summary["template_id"])
+                self.assertGreater(item.hold_duration_sec, 0, summary["template_id"])
+                self.assertGreater(item.timeout_sec, 0, summary["template_id"])
+                for requirement in item.required_objects:
+                    self.assertTrue(requirement.class_name, summary["template_id"])
+
+        for industry in template_registry.list_industries():
+            count = len(template_registry.list_templates(industry))
+            self.assertGreaterEqual(count, 4, industry)
 
     def test_industry_filter(self):
         electronics = template_registry.list_templates("电子装配")

@@ -5,7 +5,10 @@
     "industry": "电子装配",
     "difficulty": "基础",
     "summary": "抓取 PCB → 放上工作台 → 贴装元件 → 放入成品区",
-    "recommended_objects": ["circuit_board", "component"],
+    "recommended_objects": [
+      "circuit_board",
+      "component"
+    ],
     "sop": {
       "sop_name": "PCB 贴片装配",
       "version": "1.0",
@@ -15,7 +18,13 @@
           "name": "抓取电路板",
           "target_zone": "left_area",
           "required_gesture": "pinch",
-          "required_objects": [{"class_name": "circuit_board", "min_count": 1, "target_zone": "left_area"}],
+          "required_objects": [
+            {
+              "class_name": "circuit_board",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ],
           "hold_duration_sec": 1.5,
           "timeout_sec": 60,
           "description": "从左侧物料区捏取 PCB"
@@ -34,7 +43,13 @@
           "name": "贴装元件",
           "target_zone": "center_area",
           "required_gesture": "pinch",
-          "required_objects": [{"class_name": "component", "min_count": 1, "target_zone": "center_area"}],
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ],
           "hold_duration_sec": 2.0,
           "timeout_sec": 120,
           "description": "捏取元件并贴装到 PCB 指定位置"
@@ -57,7 +72,10 @@
     "industry": "电子装配",
     "difficulty": "进阶",
     "summary": "取元件 → 插入基板 → 焊接固定 → 移入待检区",
-    "recommended_objects": ["component", "tool"],
+    "recommended_objects": [
+      "component",
+      "tool"
+    ],
     "sop": {
       "sop_name": "插件焊接",
       "version": "1.0",
@@ -67,7 +85,13 @@
           "name": "取元件",
           "target_zone": "left_area",
           "required_gesture": "pinch",
-          "required_objects": [{"class_name": "component", "min_count": 1, "target_zone": "left_area"}],
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ],
           "hold_duration_sec": 1.5,
           "timeout_sec": 60,
           "description": "从物料盒捏取插件元件"
@@ -86,7 +110,13 @@
           "name": "焊接固定",
           "target_zone": "center_area",
           "required_gesture": "pinch",
-          "required_objects": [{"class_name": "tool", "min_count": 1, "target_zone": "center_area"}],
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ],
           "hold_duration_sec": 2.5,
           "timeout_sec": 120,
           "description": "持焊具完成焊点固定"
@@ -109,7 +139,9 @@
     "industry": "汽车零部件",
     "difficulty": "基础",
     "summary": "取螺栓 → 对位孔位 → 拧紧 → 放入成品区",
-    "recommended_objects": ["tool"],
+    "recommended_objects": [
+      "tool"
+    ],
     "sop": {
       "sop_name": "螺栓拧紧",
       "version": "1.0",
@@ -137,7 +169,13 @@
           "name": "拧紧螺栓",
           "target_zone": "center_area",
           "required_gesture": "fist",
-          "required_objects": [{"class_name": "tool", "min_count": 1, "target_zone": "center_area"}],
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ],
           "hold_duration_sec": 2.5,
           "timeout_sec": 120,
           "description": "持工具完成拧紧动作"
@@ -160,7 +198,9 @@
     "industry": "汽车零部件",
     "difficulty": "进阶",
     "summary": "取外壳 → 放入内衬 → 合盖压合 → 放入成品区",
-    "recommended_objects": ["product"],
+    "recommended_objects": [
+      "product"
+    ],
     "sop": {
       "sop_name": "零件装配",
       "version": "1.0",
@@ -170,7 +210,13 @@
           "name": "取外壳",
           "target_zone": "left_area",
           "required_gesture": "pinch",
-          "required_objects": [{"class_name": "product", "min_count": 1, "target_zone": "left_area"}],
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ],
           "hold_duration_sec": 1.5,
           "timeout_sec": 60,
           "description": "从左侧取外壳件"
@@ -211,7 +257,9 @@
     "industry": "食品包装",
     "difficulty": "基础",
     "summary": "取容器 → 对准灌装口 → 灌装 → 封口",
-    "recommended_objects": ["bottle"],
+    "recommended_objects": [
+      "bottle"
+    ],
     "sop": {
       "sop_name": "灌装封口",
       "version": "1.0",
@@ -221,7 +269,13 @@
           "name": "取容器",
           "target_zone": "left_area",
           "required_gesture": "pinch",
-          "required_objects": [{"class_name": "bottle", "min_count": 1, "target_zone": "left_area"}],
+          "required_objects": [
+            {
+              "class_name": "bottle",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ],
           "hold_duration_sec": 1.0,
           "timeout_sec": 60,
           "description": "从左侧取空容器"
@@ -262,7 +316,10 @@
     "industry": "医疗器械",
     "difficulty": "进阶",
     "summary": "取器械 → 放入灭菌袋 → 封口 → 贴标",
-    "recommended_objects": ["tool", "product"],
+    "recommended_objects": [
+      "tool",
+      "product"
+    ],
     "sop": {
       "sop_name": "灭菌包装",
       "version": "1.0",
@@ -272,7 +329,13 @@
           "name": "取器械",
           "target_zone": "left_area",
           "required_gesture": "pinch",
-          "required_objects": [{"class_name": "tool", "min_count": 1, "target_zone": "left_area"}],
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ],
           "hold_duration_sec": 1.5,
           "timeout_sec": 60,
           "description": "从洁净台取器械"
@@ -300,10 +363,1042 @@
           "name": "贴标",
           "target_zone": "right_area",
           "required_gesture": "point",
-          "required_objects": [{"class_name": "product", "min_count": 1, "target_zone": "right_area"}],
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "right_area"
+            }
+          ],
           "hold_duration_sec": 1.5,
           "timeout_sec": 60,
           "description": "粘贴批次标签并放入右侧待发区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "electronics-final-test",
+    "name": "成品测试",
+    "industry": "电子装配",
+    "difficulty": "进阶",
+    "summary": "取成品 → 接入测试台 → 等待测试 → 移入良品区",
+    "recommended_objects": [
+      "product",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "成品测试",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取成品",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "从左侧取待测成品",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "接入测试台",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "连接测试治具与线缆"
+        },
+        {
+          "step_id": 3,
+          "name": "等待测试",
+          "target_zone": "center_area",
+          "required_gesture": "unknown",
+          "hold_duration_sec": 3.0,
+          "timeout_sec": 120,
+          "description": "保持连接直至测试完成"
+        },
+        {
+          "step_id": 4,
+          "name": "移入良品区",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "按结果放入良品区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "electronics-case-assembly",
+    "name": "外壳组装",
+    "industry": "电子装配",
+    "difficulty": "进阶",
+    "summary": "取下壳 → 放主板 → 合上盖 → 打螺丝",
+    "recommended_objects": [
+      "component",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "外壳组装",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取下壳",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "从物料区捏取下壳",
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "放主板",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "将主板放入下壳定位柱"
+        },
+        {
+          "step_id": 3,
+          "name": "合上盖",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "压合上盖直至卡扣到位"
+        },
+        {
+          "step_id": 4,
+          "name": "打螺丝",
+          "target_zone": "center_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 2.5,
+          "timeout_sec": 120,
+          "description": "使用电批锁紧螺丝",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "electronics-wire-crimp",
+    "name": "线束压接",
+    "industry": "电子装配",
+    "difficulty": "基础",
+    "summary": "取线束 → 插入端子 → 压接 → 拉拔检查",
+    "recommended_objects": [
+      "component",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "线束压接",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取线束",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从料盒取线束",
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "插入端子",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "将线芯插入端子孔"
+        },
+        {
+          "step_id": 3,
+          "name": "压接",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "操作压接钳完成压接",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ]
+        },
+        {
+          "step_id": 4,
+          "name": "拉拔检查",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "轻拉确认不脱线后放入成品区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "electronics-conformal-coating",
+    "name": "三防涂覆",
+    "industry": "电子装配",
+    "difficulty": "进阶",
+    "summary": "取板 → 固定治具 → 喷涂 → 移入固化区",
+    "recommended_objects": [
+      "circuit_board",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "三防涂覆",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取板",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "取待涂覆 PCB",
+          "required_objects": [
+            {
+              "class_name": "circuit_board",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "固定治具",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将板固定到涂覆治具"
+        },
+        {
+          "step_id": 3,
+          "name": "喷涂",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 3.0,
+          "timeout_sec": 120,
+          "description": "按路径完成三防漆喷涂",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ]
+        },
+        {
+          "step_id": 4,
+          "name": "移入固化区",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "放入固化架等待固化"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "automotive-quality-inspection",
+    "name": "质量检验",
+    "industry": "汽车零部件",
+    "difficulty": "基础",
+    "summary": "取件 → 目视检查 → 尺寸测量 → 放行",
+    "recommended_objects": [
+      "product",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "质量检验",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取件",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从待检区取件",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "目视检查",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "检查外观缺陷"
+        },
+        {
+          "step_id": 3,
+          "name": "尺寸测量",
+          "target_zone": "center_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "使用卡尺测量关键尺寸",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ]
+        },
+        {
+          "step_id": 4,
+          "name": "放行",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "合格件放入放行区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "automotive-harness-plug",
+    "name": "线束插件",
+    "industry": "汽车零部件",
+    "difficulty": "基础",
+    "summary": "取线束 → 对准插座 → 插入到位 → 锁止",
+    "recommended_objects": [
+      "component"
+    ],
+    "sop": {
+      "sop_name": "线束插件",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取线束",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从料架取线束",
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "对准插座",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "对准车身插座"
+        },
+        {
+          "step_id": 3,
+          "name": "插入到位",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "推入直至听到卡合声"
+        },
+        {
+          "step_id": 4,
+          "name": "锁止",
+          "target_zone": "center_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "扣上锁止卡扣"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "automotive-clip-install",
+    "name": "卡扣安装",
+    "industry": "汽车零部件",
+    "difficulty": "基础",
+    "summary": "取卡扣 → 对准安装位 → 压入 → 检查",
+    "recommended_objects": [
+      "component",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "卡扣安装",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取卡扣",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从料盒捏取卡扣",
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "对准安装位",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "对准钣金安装孔"
+        },
+        {
+          "step_id": 3,
+          "name": "压入",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "垂直压入至完全就位",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ]
+        },
+        {
+          "step_id": 4,
+          "name": "检查",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "检查无翘起后放行"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "automotive-seal-strip",
+    "name": "密封条安装",
+    "industry": "汽车零部件",
+    "difficulty": "进阶",
+    "summary": "取密封条 → 起始定位 → 沿线压合 → 修剪",
+    "recommended_objects": [
+      "product",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "密封条安装",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取密封条",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "取匹配型号的密封条",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "起始定位",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "对齐起始定位点"
+        },
+        {
+          "step_id": 3,
+          "name": "沿线压合",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 3.0,
+          "timeout_sec": 120,
+          "description": "沿车门边缘连续压合"
+        },
+        {
+          "step_id": 4,
+          "name": "修剪",
+          "target_zone": "right_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "修剪多余端头",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "right_area"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "food-labeling",
+    "name": "贴标",
+    "industry": "食品包装",
+    "difficulty": "基础",
+    "summary": "取容器 → 送入贴标位 → 贴标 → 移出",
+    "recommended_objects": [
+      "bottle",
+      "product"
+    ],
+    "sop": {
+      "sop_name": "贴标",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取容器",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从左侧取已灌装容器",
+          "required_objects": [
+            {
+              "class_name": "bottle",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "送入贴标位",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "将容器放入贴标工位"
+        },
+        {
+          "step_id": 3,
+          "name": "贴标",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "压合标签至平整"
+        },
+        {
+          "step_id": 4,
+          "name": "移出",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "放入周转箱",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "right_area"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "food-carton-packing",
+    "name": "装箱码垛",
+    "industry": "食品包装",
+    "difficulty": "基础",
+    "summary": "取产品 → 放入纸箱 → 封箱 → 码垛",
+    "recommended_objects": [
+      "product",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "装箱码垛",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取产品",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从输送带取下产品",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "放入纸箱",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "按摆放规则放入纸箱"
+        },
+        {
+          "step_id": 3,
+          "name": "封箱",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "压合箱盖并贴封箱带",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ]
+        },
+        {
+          "step_id": 4,
+          "name": "码垛",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "放置到托盘指定层位"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "food-date-coding",
+    "name": "日期喷码",
+    "industry": "食品包装",
+    "difficulty": "基础",
+    "summary": "取包装 → 对准喷码位 → 喷码 → 移入待检",
+    "recommended_objects": [
+      "product"
+    ],
+    "sop": {
+      "sop_name": "日期喷码",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取包装",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从上游取待喷码包装",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "对准喷码位",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "喷码面朝上并定位"
+        },
+        {
+          "step_id": 3,
+          "name": "喷码",
+          "target_zone": "center_area",
+          "required_gesture": "unknown",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "触发喷码并确认清晰"
+        },
+        {
+          "step_id": 4,
+          "name": "移入待检",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "放入待检区"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "food-weighing",
+    "name": "称重分拣",
+    "industry": "食品包装",
+    "difficulty": "基础",
+    "summary": "取包装 → 放上秤台 → 读取重量 → 分拣",
+    "recommended_objects": [
+      "product",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "称重分拣",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取包装",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从流水线取下包装",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "放上秤台",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "居中放上称重台"
+        },
+        {
+          "step_id": 3,
+          "name": "读取重量",
+          "target_zone": "center_area",
+          "required_gesture": "unknown",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 60,
+          "description": "等待读数稳定并记录"
+        },
+        {
+          "step_id": 4,
+          "name": "分拣入箱",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "按区间放入对应周转箱"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "medical-assembly-inspection",
+    "name": "装配检验",
+    "industry": "医疗器械",
+    "difficulty": "进阶",
+    "summary": "取组件 → 组装 → 检查 → 放行",
+    "recommended_objects": [
+      "component",
+      "product"
+    ],
+    "sop": {
+      "sop_name": "装配检验",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取组件",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "从洁净台取组件",
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "组装",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "按装配图完成组合"
+        },
+        {
+          "step_id": 3,
+          "name": "检查",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "检查配合间隙与外观"
+        },
+        {
+          "step_id": 4,
+          "name": "放行",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "合格件放入传递窗",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "right_area"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "medical-catheter-assembly",
+    "name": "导管组装",
+    "industry": "医疗器械",
+    "difficulty": "进阶",
+    "summary": "取导管 → 连接接头 → 压紧 → 包装",
+    "recommended_objects": [
+      "component",
+      "tool"
+    ],
+    "sop": {
+      "sop_name": "导管组装",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取导管",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "取灭菌导管",
+          "required_objects": [
+            {
+              "class_name": "component",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "连接接头",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "将接头插入导管座"
+        },
+        {
+          "step_id": 3,
+          "name": "压紧",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "压紧至锁扣到位",
+          "required_objects": [
+            {
+              "class_name": "tool",
+              "min_count": 1,
+              "target_zone": "center_area"
+            }
+          ]
+        },
+        {
+          "step_id": 4,
+          "name": "包装",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "放入初包装袋"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "medical-reagent-filling",
+    "name": "试剂灌装",
+    "industry": "医疗器械",
+    "difficulty": "进阶",
+    "summary": "取瓶 → 对准灌装 → 灌装 → 加盖",
+    "recommended_objects": [
+      "bottle"
+    ],
+    "sop": {
+      "sop_name": "试剂灌装",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取瓶",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "取洁净试剂瓶",
+          "required_objects": [
+            {
+              "class_name": "bottle",
+              "min_count": 1,
+              "target_zone": "left_area"
+            }
+          ]
+        },
+        {
+          "step_id": 2,
+          "name": "对准灌装",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "瓶口对准灌装嘴"
+        },
+        {
+          "step_id": 3,
+          "name": "灌装",
+          "target_zone": "center_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 3.0,
+          "timeout_sec": 120,
+          "description": "保持稳定完成定量灌装"
+        },
+        {
+          "step_id": 4,
+          "name": "加盖",
+          "target_zone": "center_area",
+          "required_gesture": "fist",
+          "hold_duration_sec": 2.0,
+          "timeout_sec": 90,
+          "description": "压合瓶盖至密封"
+        }
+      ]
+    }
+  },
+  {
+    "template_id": "medical-label-check",
+    "name": "标签核对",
+    "industry": "医疗器械",
+    "difficulty": "基础",
+    "summary": "取标签 → 扫描 → 核对 → 贴附",
+    "recommended_objects": [
+      "product"
+    ],
+    "sop": {
+      "sop_name": "标签核对",
+      "version": "1.0",
+      "steps": [
+        {
+          "step_id": 1,
+          "name": "取标签",
+          "target_zone": "left_area",
+          "required_gesture": "pinch",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "从打印区取标签"
+        },
+        {
+          "step_id": 2,
+          "name": "扫描",
+          "target_zone": "center_area",
+          "required_gesture": "point",
+          "hold_duration_sec": 1.0,
+          "timeout_sec": 60,
+          "description": "扫码核对批次信息"
+        },
+        {
+          "step_id": 3,
+          "name": "核对",
+          "target_zone": "center_area",
+          "required_gesture": "unknown",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 60,
+          "description": "核对产品与标签一致"
+        },
+        {
+          "step_id": 4,
+          "name": "贴附",
+          "target_zone": "right_area",
+          "required_gesture": "open",
+          "hold_duration_sec": 1.5,
+          "timeout_sec": 90,
+          "description": "贴附到包装指定位置",
+          "required_objects": [
+            {
+              "class_name": "product",
+              "min_count": 1,
+              "target_zone": "right_area"
+            }
+          ]
         }
       ]
     }
