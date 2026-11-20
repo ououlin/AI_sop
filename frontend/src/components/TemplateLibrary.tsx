@@ -18,6 +18,7 @@ export default function TemplateLibrary({ canEdit, onApplied }: TemplateLibraryP
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
+  const [applyZones, setApplyZones] = useState(true)
 
   const load = useCallback(async () => {
     const [templateResp, modelResp] = await Promise.all([
@@ -59,7 +60,7 @@ export default function TemplateLibrary({ canEdit, onApplied }: TemplateLibraryP
     try {
       const resp = await apiFetch(`/marketplace/templates/${detail.template_id}/apply`, {
         method: 'POST',
-        body: JSON.stringify({ activate: true }),
+        body: JSON.stringify({ activate: true, apply_zones: applyZones }),
       })
       const body = await resp.json().catch(() => ({}))
       if (!resp.ok) {
@@ -134,6 +135,14 @@ export default function TemplateLibrary({ canEdit, onApplied }: TemplateLibraryP
         <>
           <TemplatePreview detail={detail} />
           <div className="template-actions">
+            <label className="template-zone-toggle">
+              <input
+                type="checkbox"
+                checked={applyZones}
+                onChange={(event) => setApplyZones(event.target.checked)}
+              />
+              同时应用推荐区域划分
+            </label>
             <button type="button" disabled={!canEdit || busy} onClick={() => void apply()}>
               {busy ? '应用中...' : canEdit ? '应用并激活' : '需要 sop:edit 权限'}
             </button>

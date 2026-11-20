@@ -269,5 +269,33 @@ class MarketplaceApiTests(unittest.TestCase):
 
 
 
+
+class ZonePresetTests(unittest.TestCase):
+    def test_apply_preset_updates_work_zones(self):
+        import tempfile
+        from pathlib import Path as _Path
+        from config import WORK_ZONES
+        from marketplace import zone_presets
+
+        original = {name: list(coords) for name, coords in WORK_ZONES.items()}
+        tmpdir = tempfile.mkdtemp()
+        try:
+            zones = zone_presets.apply_preset("standard", zones_file=_Path(tmpdir) / "zones.json")
+            self.assertEqual(zones["left_area"][0], 0.0)
+            self.assertEqual(WORK_ZONES["right_area"][2], 1.0)
+            self.assertTrue((_Path(tmpdir) / "zones.json").exists())
+
+            two = zone_presets.apply_preset("two_zone", zones_file=_Path(tmpdir) / "zones2.json")
+            self.assertAlmostEqual(two["left_area"][2], 0.45)
+        finally:
+            zone_presets.apply_preset.__globals__["update_work_zones"](original)
+
+    def test_unknown_preset(self):
+        from marketplace import zone_presets
+
+        with self.assertRaises(zone_presets.ZonePresetError):
+            zone_presets.get_preset("nope")
+
+
 if __name__ == "__main__":
     unittest.main()

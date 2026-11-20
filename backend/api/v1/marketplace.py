@@ -17,7 +17,7 @@ from auth.dependencies import require_permission
 from database import get_db
 from dependencies import get_alarm_manager, get_execution_tracker, get_sop_manager
 from execution_tracker import ExecutionTracker
-from marketplace import custom_template_manager, template_registry
+from marketplace import custom_template_manager, template_registry, zone_presets
 from models import SOPDefinition
 from tenancy.context import get_tenant_id
 from repositories.sop_repo import SOPRepository
@@ -55,6 +55,9 @@ class ModelInfo(BaseModel):
 class ApplyTemplateRequest(BaseModel):
     activate: bool = True
     name: Optional[str] = Field(default=None, max_length=100)
+    # 应用模板时同时铺开推荐区域划分，免去首次标定
+    apply_zones: bool = False
+    zone_preset: str = "standard"
 
 
 class CustomTemplateRequest(BaseModel):
@@ -163,6 +166,14 @@ async def apply_template(
         [step.model_dump(mode="json") for step in definition.steps],
         ensure_ascii=False,
     )
+    zones_applied = False
+    if req.apply_zones:
+        try:
+            zone_presets.apply_preset(req.zone_preset)
+            zones_applied = True
+        except zone_presets.ZonePresetError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
     sop = SOPRepository(db).create(
         definition.sop_name,
         steps_json,
@@ -183,6 +194,19 @@ async def apply_template(
         "version": sop.version,
         "source": source,
         "activated": req.activate,
+        "zones_applied": zones_applied,
+    }
+
+
+@router.get(
+    "/zone-presets",
+    dependencies=[Depends(require_permission("sop:view"))],
+)
+async def list_zone_presets():
+    """可一键铺开的区域预设"""
+    return {
+        "presets": zone_presets.list_presets(),
+        "current": zone_presets.current_zones(),
     }
 
 
