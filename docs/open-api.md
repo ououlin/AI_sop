@@ -42,9 +42,24 @@ curl http://localhost:8000/api/v1/open/execution?limit=5 \
 }
 ```
 
-请求头：`X-AI-SOP-Event`、`X-AI-SOP-Secret`（订阅时配置的密钥）。
+请求头：
 
-投递为尽力而为：3 秒超时、独立线程、失败只记录在 `/api/v1/webhooks/deliveries/recent`（内存保留最近 50 条），不阻塞识别主链路。
+- `X-AI-SOP-Event`：事件名
+- `X-AI-SOP-Signature: sha256=<HMAC-SHA256(body, secret)>`（订阅时配置 secret 才携带）
+
+验签示例（Python）：
+
+```python
+import hashlib, hmac
+
+body = request.get_data()
+expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+provided = request.headers["X-AI-SOP-Signature"].split("=", 1)[1]
+assert hmac.compare_digest(expected, provided)
+```
+
+投递策略：3 秒超时、最多重试 3 次（间隔 0.5s / 1.0s 递增）、独立线程执行；
+失败只记录在 `/api/v1/webhooks/deliveries/recent`（内存最近 50 条，含 `attempts` 与 `detail`），不阻塞识别主链路。
 
 ## 4. MES 报文结构
 
