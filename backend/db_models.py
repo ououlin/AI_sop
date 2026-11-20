@@ -120,6 +120,48 @@ class WebhookDB(Base):
     created_at = Column(DateTime, default=datetime.now)
 
 
+class DeviceDB(Base):
+    """设备档案（心跳时更新，持久化）"""
+
+    __tablename__ = "devices"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "device_id", name="uq_devices_tenant_device"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    device_id = Column(String(50), nullable=False, index=True)
+    name = Column(String(100), nullable=False, default="")
+    status = Column(String(20), nullable=False, default="idle")
+    app_version = Column(String(20), nullable=False, default="")
+    model_version = Column(String(50), nullable=False, default="")
+    camera_ok = Column(Boolean, nullable=False, default=True)
+    fps = Column(Float, nullable=False, default=0.0)
+    latency_ms = Column(Float, nullable=False, default=0.0)
+    last_seen = Column(DateTime, nullable=True)
+    config_json = Column(Text, nullable=False, default="{}")
+    config_version = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class DeviceCommandDB(Base):
+    """设备命令（配置下发 / 远程升级）"""
+
+    __tablename__ = "device_commands"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    device_id = Column(String(50), nullable=False, index=True)
+    command_id = Column(String(32), nullable=False, unique=True, index=True)
+    type = Column(String(20), nullable=False)
+    payload_json = Column(Text, nullable=False, default="{}")
+    status = Column(String(20), nullable=False, default="pending")
+    message = Column(String(200), nullable=False, default="")
+    created_at = Column(DateTime, default=datetime.now)
+    acked_at = Column(DateTime, nullable=True)
+
+
 class SOPDefinitionDB(Base):
     """SOP 定义表（名称在租户内唯一）"""
 
@@ -190,6 +232,8 @@ __all__ = [
     "DEFAULT_TENANT_ID",
     "DEFAULT_TENANT_NAME",
     "ApiKeyDB",
+    "DeviceCommandDB",
+    "DeviceDB",
     "ExecutionRecord",
     "WebhookDB",
     "SOPDefinitionDB",

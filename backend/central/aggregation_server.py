@@ -203,13 +203,14 @@ async def report_station(
                 ),
             )
 
+    device_manager.touch(db, tenant.id, report)
     info = aggregation_server.report(report, tenant.id)
     return {
         "ok": True,
         "station_id": info.station_id,
         "is_online": info.is_online,
         "tenant_id": tenant.id,
-        "commands": device_manager.pending(report.station_id),
+        "commands": device_manager.pending(db, report.station_id),
     }
 
 
