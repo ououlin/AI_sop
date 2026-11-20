@@ -224,6 +224,11 @@ python -m unittest discover -s tests -t .
 
 系统支持两种部署形态，通过环境变量切换：
 
+### 多租户说明
+- 数据面按租户隔离：用户、SOP、执行记录都带 `tenant_id`，从两张表到查询层全链路过滤
+- 登录时通过 `tenant` 字段指定租户编码，缺省为 `default`；Token 内携带租户信息
+- 识别流水线是单工位单租户的：一个进程服务一台设备，多租户共享的是 API 与数据库
+
 ### 单机部署（默认）
 - 工位识别与中央聚合在同一进程运行
 - `ENABLE_LOCAL_AGGREGATION=true`（默认）
@@ -243,6 +248,8 @@ python -m unittest discover -s tests -t .
 |------|--------|------|
 | `HOST` | `0.0.0.0` | 服务监听地址 |
 | `PORT` | `8000` | 服务监听端口 |
+| `DATABASE_URL` | `sqlite:///backend/data/ai_sop.db` | 数据库连接串（PostgreSQL 见 P3 阶段 4） |
+| `DEFAULT_TENANT_CODE` | `default` | 默认租户编码，老数据与后台任务归属 |
 | `CORS_ORIGINS` | dev默认 | 允许跨域来源（逗号分隔） |
 | `CAMERA_INDEX` | `0` | 摄像头索引 |
 | `CAMERA_WIDTH` / `CAMERA_HEIGHT` / `CAMERA_FPS` | `1280`/`720`/`30` | 摄像头参数 |
