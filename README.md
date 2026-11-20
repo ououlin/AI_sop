@@ -179,6 +179,7 @@ python -m unittest discover -s tests -t .
 | [API 参考](docs/API.md) | REST 接口、WebSocket、错误结构、SOP 格式、角色权限 |
 | [配置参考](docs/配置参考.md) | 环境变量清单与部署配置组合 |
 | [部署指南](docs/部署指南.md) | 单机 / 多工位 / SaaS / Docker 部署 |
+| [开放平台接入](docs/open-api.md) | API Key、Webhook 事件、MES 报文与 Python SDK |
 | [P2 识别精度与生产化](docs/P2-体验与部署.md) | 当前能力是怎么来的 |
 | [P3-M1 多租户实施计划](docs/P3-M1-多租户实施计划.md) | 当前正在做的事 |
 
@@ -194,7 +195,7 @@ python -m unittest discover -s tests -t .
 | P3-M2 | 算法市场与工序模板（模板库 v1） | 🚧 进行中 |
 | P3-M3 | 设备管理与远程运维（v1） | 🚧 进行中 |
 | P3-M4 | 数据分析与 BI 报表（v1） | 🚧 进行中 |
-| P3-M5 | 开放平台与生态 | 📋 规划中 |
+| P3-M5 | 开放平台与生态（v1） | 🚧 进行中 |
 
 ## 贡献
 

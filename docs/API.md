@@ -129,7 +129,24 @@
 
 > OEE 为近似口径：可用率按统计窗口内的执行覆盖时长计算，窗口内运行时间不足时数值偏低属正常。
 
-## 12. WebSocket
+## 12. 开放平台（API Key）
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET/POST | `/api-keys` | `user:manage` | 列出 / 创建 API Key（明文仅创建时返回一次） |
+| DELETE | `/api-keys/{id}` | `user:manage` | 吊销 Key |
+| GET/POST | `/webhooks` | `user:manage` | 列出 / 创建 Webhook 订阅 |
+| DELETE | `/webhooks/{id}` | `user:manage` | 删除订阅 |
+| GET | `/webhooks/deliveries/recent` | `user:manage` | 最近投递记录（内存 50 条） |
+| GET | `/open/sop` | API Key `read` | SOP 列表 |
+| GET | `/open/execution` | API Key `read` | 执行记录分页 |
+| GET | `/open/execution/{id}` | API Key `read` | 执行详情（含步骤与质量标记） |
+| GET | `/open/mes/execution/{id}` | API Key `read` | MES 通用报文 |
+| GET | `/open/analytics/overview` | API Key `read` | OEE / FPY / CT / DPMO / MTBF |
+
+> 接入说明见 [open-api.md](open-api.md)。
+
+## 13. WebSocket
 
 | 路径 | 说明 |
 |------|------|
@@ -137,7 +154,7 @@
 | `/ws/status` | 推送步骤状态更新（JSON），需登录 Cookie |
 
 
-## 13. 错误响应
+## 14. 错误响应
 
 ```json
 { "error": "未提供认证Token", "code": 401 }
@@ -149,7 +166,7 @@
 { "detail": "工位数量已达套餐上限 1（当前套餐：体验版）" }
 ```
 
-## 14. SOP 定义格式
+## 15. SOP 定义格式
 
 SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 
@@ -165,7 +182,7 @@ SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 | `steps[].required_objects` | 要求物体：`class_name` / `target_zone` / `min_count` |
 | `steps[].description` | 步骤描述 |
 
-## 15. 角色与权限
+## 16. 角色与权限
 
 | 角色 | 定位 | 权限点 |
 |------|------|--------|

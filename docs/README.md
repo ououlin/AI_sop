@@ -19,6 +19,7 @@ AI SOP 装配线工序识别系统的产品与工程文档。所有阶段文档�
 | [API.md](API.md) | REST 接口、WebSocket、错误结构、SOP 格式、角色权限 |
 | [配置参考.md](配置参考.md) | 环境变量清单与部署配置组合 |
 | [部署指南.md](部署指南.md) | 单机 / 多工位 / Docker / PostgreSQL schema 隔离 |
+| [open-api.md](open-api.md) | 开放平台：API Key、Webhook 事件、MES 报文与 SDK |
 
 ## 3. 阅读路径
 
