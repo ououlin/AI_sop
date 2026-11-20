@@ -3,11 +3,11 @@ import type { SopFileEntry } from '../types'
 import { apiFetch } from '../utils/api'
 
 interface SopSwitcherProps {
-  currentFile: string
-  onLoad: (filename: string) => Promise<void>
+  currentSource: string
+  onLoad: (source: string) => Promise<void>
 }
 
-export function SopSwitcher({ currentFile, onLoad }: SopSwitcherProps) {
+export function SopSwitcher({ currentSource, onLoad }: SopSwitcherProps) {
   const [sops, setSops] = useState<SopFileEntry[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -15,25 +15,23 @@ export function SopSwitcher({ currentFile, onLoad }: SopSwitcherProps) {
     try {
       const res = await apiFetch('/sop/list')
       const data = await res.json()
-      setSops(
-        (data.sops ?? []).map((name: string) => ({
-          name,
-          loaded: name === currentFile,
-        })),
-      )
+      setSops((data.entries ?? []).map((entry: SopFileEntry) => ({
+        ...entry,
+        loaded: entry.key === currentSource,
+      })))
     } catch {
       // 列表加载失败静默
     }
-  }, [currentFile])
+  }, [currentSource])
 
   useEffect(() => {
     refreshList()
   }, [refreshList])
 
-  const handleLoad = async (filename: string) => {
+  const handleLoad = async (source: string) => {
     setLoading(true)
     try {
-      await onLoad(filename)
+      await onLoad(source)
     } finally {
       setLoading(false)
     }
@@ -47,16 +45,18 @@ export function SopSwitcher({ currentFile, onLoad }: SopSwitcherProps) {
       ) : (
         <div className="sop-select-list">
           {sops.map((sop) => {
-            const isCurrent = sop.name === currentFile
+            const isCurrent = sop.key === currentSource
             return (
               <button
-                key={sop.name}
+                key={sop.key}
                 className={`sop-select-item ${isCurrent ? 'current' : ''}`}
                 disabled={loading || isCurrent}
-                onClick={() => handleLoad(sop.name)}
+                onClick={() => handleLoad(sop.key)}
                 title={isCurrent ? '当前已加载' : `加载 ${sop.name}`}
               >
-                <span className="sop-select-name">{sop.name}</span>
+                <span className="sop-select-name">
+                  {sop.name} <small>{sop.source === 'file' ? '文件' : '数据库'}</small>
+                </span>
                 {isCurrent && <span className="sop-current-tag">当前</span>}
               </button>
             )

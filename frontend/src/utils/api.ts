@@ -29,5 +29,5 @@ export async function apiFetch(
   const url = path.startsWith('http')
     ? path
     : `/api/v1${path.startsWith('/') ? path : `/${path}`}`
-  return fetch(url, { ...options, headers })
+  return fetch(url, { ...options, headers, credentials: 'same-origin' })
 }

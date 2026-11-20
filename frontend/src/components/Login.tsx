@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 interface LoginProps {
-  onLogin: (token: string, role: string, displayName: string) => void;
+  onLogin: (token: string, role: string, displayName: string, permissions: string[]) => void;
 }
 
 const API_BASE = '/api/v1';
@@ -27,7 +27,7 @@ export default function Login({ onLogin }: LoginProps) {
         setError(data.detail || '登录失败');
         return;
       }
-      onLogin(data.access_token, data.role, data.display_name);
+      onLogin(data.access_token, data.role, data.display_name, data.permissions || []);
     } catch (e) {
       setError('网络错误，请检查服务是否启动');
     } finally {
@@ -38,7 +38,10 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <div className="login-overlay">
       <form className="login-form" onSubmit={handleSubmit}>
-        <h2>AI SOP 系统登录</h2>
+        <div className="login-brand">
+          <h2>智序质控</h2>
+          <p>AI 装配工序智能体</p>
+        </div>
         {error && <div className="login-error">{error}</div>}
         <div className="login-field">
           <label>用户名</label>

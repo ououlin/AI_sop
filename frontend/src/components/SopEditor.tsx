@@ -59,11 +59,14 @@ export function SopEditor({ onSave }: SopEditorProps) {
 
     setLoading(true)
     try {
-      const stepsJson = JSON.stringify(steps)
       const res = await apiFetch('/sop/db/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ name: sopName, steps_json: stepsJson, version }),
+        body: JSON.stringify({
+          name: sopName,
+          version,
+          steps,
+          activate: true,
+        }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -73,7 +76,7 @@ export function SopEditor({ onSave }: SopEditorProps) {
         onSave?.()
       } else {
         const error = await res.json()
-        alert(`保存失败: ${error.error}`)
+        alert(`保存失败: ${error.detail || error.error || res.status}`)
       }
     } catch (e) {
       alert('保存失败，请检查后端服务')
@@ -86,11 +89,14 @@ export function SopEditor({ onSave }: SopEditorProps) {
     try {
       const res = await apiFetch('/sop/list')
       const data = await res.json()
-      if ((data.sops || []).length > 0) {
-        const fileName = data.sops[0]
-        const fileRes = await fetch(`/sops/${fileName}`)
+      const fileEntry = (data.entries || []).find(
+        (entry: { source: string }) => entry.source === 'file',
+      )
+      if (fileEntry) {
+        const fileRes = await apiFetch(`/sop/file/${encodeURIComponent(fileEntry.name)}`)
+        if (!fileRes.ok) throw new Error(`HTTP ${fileRes.status}`)
         const sopData = await fileRes.json()
-        setSopName(sopData.sop_name || fileName.replace('.json', ''))
+        setSopName(sopData.sop_name || fileEntry.name.replace('.json', ''))
         setVersion(sopData.version || '1.0')
         setSteps(sopData.steps || [])
         setSaved(false)

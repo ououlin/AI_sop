@@ -11,6 +11,9 @@ const STATUS_LABEL: Record<string, string> = {
   in_progress: '进行中',
   completed: '已完成',
   skipped: '已跳过',
+  timeout: '已超时',
+  error: '错误',
+  unauthorized_skip: '未授权跳过',
 }
 
 export function StepList({ steps, currentIndex, allDone }: StepListProps) {

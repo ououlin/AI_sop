@@ -11,6 +11,7 @@ import { apiFetch } from '../utils/api'
 function useSocket<T>(
   url: string,
   onMessage: (data: T) => void,
+  enabled: boolean,
   onOpen?: () => void,
 ) {
   const [connected, setConnected] = useState(false)
@@ -38,7 +39,7 @@ function useSocket<T>(
   }, [])
 
   const connect = useCallback(() => {
-    if (!mountedRef.current) return
+    if (!mountedRef.current || !enabled) return
     clearTimers()
 
     const proto = location.protocol === 'https:' ? 'wss' : 'ws'
@@ -82,11 +83,15 @@ function useSocket<T>(
         /* 非 JSON 消息（如 ping 回包）忽略 */
       }
     }
-  }, [url, clearTimers])
+  }, [url, clearTimers, enabled])
 
   useEffect(() => {
     mountedRef.current = true
-    connect()
+    if (enabled) {
+      connect()
+    } else {
+      setConnected(false)
+    }
     return () => {
       mountedRef.current = false
       clearTimers()
@@ -101,7 +106,7 @@ function useSocket<T>(
  * 视频帧 WebSocket Hook
  * 接收二进制 JPEG 帧，通过回调传出 blobURL
  */
-export function useVideoSocket(onFrame: (dataUrl: string) => void) {
+export function useVideoSocket(enabled: boolean, onFrame: (dataUrl: string) => void) {
   const [connected, setConnected] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectCountRef = useRef(0)
@@ -123,7 +128,7 @@ export function useVideoSocket(onFrame: (dataUrl: string) => void) {
   }, [])
 
   const connect = useCallback(() => {
-    if (!mountedRef.current) return
+    if (!mountedRef.current || !enabled) return
     clearTimers()
 
     const proto = location.protocol === 'https:' ? 'wss' : 'ws'
@@ -162,11 +167,15 @@ export function useVideoSocket(onFrame: (dataUrl: string) => void) {
         onFrameRef.current(url)
       }
     }
-  }, [clearTimers])
+  }, [clearTimers, enabled])
 
   useEffect(() => {
     mountedRef.current = true
-    connect()
+    if (enabled) {
+      connect()
+    } else {
+      setConnected(false)
+    }
     return () => {
       mountedRef.current = false
       clearTimers()
@@ -181,10 +190,10 @@ export function useVideoSocket(onFrame: (dataUrl: string) => void) {
  * 状态 WebSocket Hook
  * 接收步骤状态 + 手部信息
  */
-export function useStatusSocket(onStatus: (status: StatusMessage) => void) {
+export function useStatusSocket(enabled: boolean, onStatus: (status: StatusMessage) => void) {
   return useSocket<StatusMessage>('/ws/status', (msg) => {
     onStatus(msg)
-  })
+  }, enabled)
 }
 
 /**

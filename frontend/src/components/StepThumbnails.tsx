@@ -11,6 +11,9 @@ const STATUS_COLORS: Record<string, string> = {
   in_progress: '#3b82f6',
   completed: '#22c55e',
   skipped: '#94a3b8',
+  timeout: '#ef4444',
+  error: '#ef4444',
+  unauthorized_skip: '#ef4444',
 }
 
 export function StepThumbnails({ steps, currentIndex, allDone }: StepThumbnailsProps) {

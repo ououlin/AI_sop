@@ -8,9 +8,10 @@ interface CameraInfo {
 
 interface CameraSelectorProps {
   currentIndex: number
+  canManage: boolean
 }
 
-export function CameraSelector({ currentIndex }: CameraSelectorProps) {
+export function CameraSelector({ currentIndex, canManage }: CameraSelectorProps) {
   const [cameras, setCameras] = useState<CameraInfo[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(currentIndex)
@@ -70,6 +71,7 @@ export function CameraSelector({ currentIndex }: CameraSelectorProps) {
             <button
               key={cam.index}
               className={`camera-item ${selectedIndex === cam.index ? 'active' : ''}`}
+              disabled={!canManage}
               onClick={() => handleSwitch(cam.index)}
             >
               <span className="camera-index">摄像头 {cam.index}</span>

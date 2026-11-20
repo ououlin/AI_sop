@@ -6,6 +6,7 @@ interface ControlPanelProps {
   onReset: () => Promise<void>
   onSkip: () => Promise<void>
   paused: boolean
+  canSkip: boolean
 }
 
 /**
@@ -18,6 +19,7 @@ export function ControlPanel({
   onReset,
   onSkip,
   paused,
+  canSkip,
 }: ControlPanelProps) {
   const [localPaused, setLocalPaused] = useState(paused)
   const [pending, setPending] = useState<string | null>(null)
@@ -74,13 +76,15 @@ export function ControlPanel({
         >
           {pending === 'pause' ? '...' : '⏸'} 暂停
         </button>
-        <button
-          className="btn btn-skip"
-          disabled={btnDisabled('skip')}
-          onClick={() => action('skip', onSkip)}
-        >
-          ⏭ 跳过当前
-        </button>
+        {canSkip && (
+          <button
+            className="btn btn-skip"
+            disabled={btnDisabled('skip')}
+            onClick={() => action('skip', onSkip)}
+          >
+            ⏭ 跳过当前
+          </button>
+        )}
         <button
           className="btn btn-reset"
           disabled={btnDisabled('reset')}

@@ -37,6 +37,8 @@ export function RecordList({ onSelect }: RecordListProps) {
 
   useEffect(() => {
     refreshRecords()
+    const interval = setInterval(refreshRecords, 5000)
+    return () => clearInterval(interval)
   }, [refreshRecords])
 
   const formatTime = (isoString: string | null) => {

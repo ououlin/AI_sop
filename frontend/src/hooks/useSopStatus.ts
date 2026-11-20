@@ -7,11 +7,12 @@ import { apiFetch } from '../utils/api'
  * - 首屏拉取一次 SOP 状态（WS 兜底）
  * - 每 5 秒轮询 /api/v1/health 同步摄像头索引
  */
-export function useSopStatus() {
+export function useSopStatus(enabled: boolean) {
   const [sopStatus, setSopStatus] = useState<SopStatus | null>(null)
   const [cameraIndex, setCameraIndex] = useState(0)
 
   const refreshStatus = useCallback(async () => {
+    if (!enabled) return
     try {
       const res = await apiFetch('/sop/status')
       const data = await res.json()
@@ -19,13 +20,14 @@ export function useSopStatus() {
     } catch {
       // 静默
     }
-  }, [])
+  }, [enabled])
 
   useEffect(() => {
-    refreshStatus()
+    if (enabled) refreshStatus()
   }, [refreshStatus])
 
   useEffect(() => {
+    if (!enabled) return
     const fetchCameraIndex = async () => {
       try {
         const res = await fetch('/api/v1/health')
@@ -38,7 +40,7 @@ export function useSopStatus() {
     fetchCameraIndex()
     const interval = setInterval(fetchCameraIndex, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [enabled])
 
   return { sopStatus, cameraIndex, refreshStatus }
 }

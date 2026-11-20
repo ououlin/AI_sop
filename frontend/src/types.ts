@@ -2,7 +2,14 @@
 
 export type GestureType = 'open' | 'fist' | 'pinch' | 'point' | 'unknown'
 export type HandType = 'Left' | 'Right'
-export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'skipped'
+export type StepStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'completed'
+  | 'skipped'
+  | 'error'
+  | 'timeout'
+  | 'unauthorized_skip'
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export interface Landmark {
@@ -26,16 +33,23 @@ export interface StepRuntimeState {
   status: StepStatus
   matched_duration: number
   hold_duration_sec: number
+  timeout_sec: number
   completed_at: string | null
+  started_at: string | null
   description: string
 }
 
 export interface StatusMessage {
   type: string
   sop_name: string
+  source: string | null
+  paused: boolean
+  all_done: boolean
   current_step_index: number
   steps: StepRuntimeState[]
   hands: HandResult[]
+  objects: unknown[]
+  alarms: unknown[]
   fps: number
   timestamp: string
 }
@@ -43,6 +57,7 @@ export interface StatusMessage {
 export interface SopStatus {
   loaded: boolean
   sop_name?: string
+  source?: string | null
   paused?: boolean
   current_step_index?: number
   all_done?: boolean
@@ -51,7 +66,10 @@ export interface SopStatus {
 
 /** SOP 文件列表项 */
 export interface SopFileEntry {
+  key: string
   name: string
+  source: 'file' | 'database'
+  version?: string
   loaded?: boolean
 }
 

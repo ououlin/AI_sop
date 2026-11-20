@@ -13,7 +13,6 @@ type ShowToast = (text: string, type?: ToastItem['type']) => void
 export function useSopControl(
   refreshStatus: () => Promise<void>,
   showToast: ShowToast,
-  setCurrentSopFile: (filename: string) => void,
 ) {
   const { call } = useApi()
 
@@ -40,13 +39,12 @@ export function useSopControl(
   }, [call, refreshStatus, showToast])
 
   const handleLoadSop = useCallback(
-    async (filename: string) => {
-      await call('/sop/load', { filename })
-      setCurrentSopFile(filename)
-      showToast(`已加载 SOP: ${filename}`, 'success')
+    async (source: string) => {
+      await call('/sop/load', { source })
+      showToast(`已加载 SOP: ${source}`, 'success')
       refreshStatus()
     },
-    [call, refreshStatus, showToast, setCurrentSopFile],
+    [call, refreshStatus, showToast],
   )
 
   return { handleStart, handlePause, handleReset, handleSkip, handleLoadSop }
