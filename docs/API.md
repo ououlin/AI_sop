@@ -104,7 +104,21 @@
 | POST | `/marketplace/templates/{template_id}/apply` | `sop:edit` | 一键应用：写入本租户 SOP，`activate` 控制是否立即激活 |
 | GET | `/marketplace/models` | `sop:view` | 检测模型目录 |
 
-## 10. WebSocket
+## 10. 设备运维
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/ops/devices` | `station:view` | 设备列表与健康摘要（healthy / warning / offline） |
+| GET | `/ops/devices/{id}` | `station:view` | 设备详情、告警与命令记录 |
+| POST | `/ops/devices/{id}/config` | `station:manage` | 下发配置（如 `report_interval`），下次心跳生效 |
+| POST | `/ops/devices/{id}/upgrade` | `station:manage` | 下发模型升级命令（v1 重启后生效） |
+| GET | `/ops/devices/{id}/commands` | `station:view` | 命令历史 |
+| GET | `/ops/model-versions` | `station:view` | 可升级模型版本目录 |
+| POST | `/station/ack` | 工位密钥 | 工位回执命令执行结果 |
+
+> 工位上报 `POST /station/report` 的响应会带上 `commands`，工位据此执行并回执。
+
+## 11. WebSocket
 
 | 路径 | 说明 |
 |------|------|
@@ -112,7 +126,7 @@
 | `/ws/status` | 推送步骤状态更新（JSON），需登录 Cookie |
 
 
-## 11. 错误响应
+## 12. 错误响应
 
 ```json
 { "error": "未提供认证Token", "code": 401 }
@@ -124,7 +138,7 @@
 { "detail": "工位数量已达套餐上限 1（当前套餐：体验版）" }
 ```
 
-## 12. SOP 定义格式
+## 13. SOP 定义格式
 
 SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 
@@ -140,7 +154,7 @@ SOP 以 JSON 存放于 `sops/` 或数据库，字段如下：
 | `steps[].required_objects` | 要求物体：`class_name` / `target_zone` / `min_count` |
 | `steps[].description` | 步骤描述 |
 
-## 13. 角色与权限
+## 14. 角色与权限
 
 | 角色 | 定位 | 权限点 |
 |------|------|--------|
