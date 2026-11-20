@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from db_models import ApiKeyDB, TenantDB
+from openplatform.rate_limiter import limiter
 from tenancy.context import tenant_context
 
 KEY_PREFIX_LEN = 8
@@ -127,6 +128,15 @@ def require_api_key(scope: str = "read"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="API Key 缺少作用域: {}".format(scope),
+            )
+
+        allowed, remaining, retry_after = limiter.hit(str(record.id))
+        request.state.rate_limit_remaining = remaining
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="请求过于频繁，请稍后重试",
+                headers={"Retry-After": str(int(retry_after) + 1)},
             )
 
         tenant = db.query(TenantDB).filter(TenantDB.id == record.tenant_id).first()

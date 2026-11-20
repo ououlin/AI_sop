@@ -235,5 +235,67 @@ class OpenApiTests(OpenPlatformBase):
         self.assertEqual(response.json()["total"], 0)
 
 
+class RateLimitTests(OpenPlatformBase):
+    def test_limiter_window(self):
+        from openplatform.rate_limiter import RateLimiter
+
+        limiter = RateLimiter(limit=2, window_sec=60)
+        self.assertEqual(limiter.hit("k", now=100.0), (True, 1, 0.0))
+        self.assertEqual(limiter.hit("k", now=101.0), (True, 0, 0.0))
+
+        allowed, remaining, retry_after = limiter.hit("k", now=102.0)
+        self.assertFalse(allowed)
+        self.assertEqual(remaining, 0)
+        self.assertGreater(retry_after, 0)
+
+        # 进入下一个窗口后恢复
+        self.assertTrue(limiter.hit("k", now=200.0)[0])
+
+    def test_limiter_isolated_per_key(self):
+        from openplatform.rate_limiter import RateLimiter
+
+        limiter = RateLimiter(limit=1, window_sec=60)
+        self.assertTrue(limiter.hit("a", now=10.0)[0])
+        self.assertFalse(limiter.hit("a", now=11.0)[0])
+        self.assertTrue(limiter.hit("b", now=11.0)[0])
+
+    def test_open_api_returns_429(self):
+        from openplatform import api_gateway
+        from openplatform.rate_limiter import RateLimiter
+
+        db = self.Session()
+        _, raw_key = api_gateway.create_key(db, 1, "限流测试", ["read"])
+        db.close()
+
+        original = api_gateway.limiter
+        api_gateway.limiter = RateLimiter(limit=2, window_sec=60)
+        try:
+            app = FastAPI()
+            app.dependency_overrides[real_get_db] = self._get_db_override()
+            app.include_router(open_router, prefix="/api/v1")
+            client = TestClient(app)
+            headers = {"X-API-Key": raw_key}
+
+            self.assertEqual(client.get("/api/v1/open/sop", headers=headers).status_code, 200)
+            self.assertEqual(client.get("/api/v1/open/sop", headers=headers).status_code, 200)
+            blocked = client.get("/api/v1/open/sop", headers=headers)
+            self.assertEqual(blocked.status_code, 429)
+            self.assertIn("Retry-After", blocked.headers)
+        finally:
+            api_gateway.limiter = original
+
+    def _get_db_override(self):
+        factory = self.Session
+
+        def override():
+            db = factory()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        return override
+
+
 if __name__ == "__main__":
     unittest.main()
