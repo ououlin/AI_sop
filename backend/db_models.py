@@ -120,6 +120,26 @@ class WebhookDB(Base):
     created_at = Column(DateTime, default=datetime.now)
 
 
+class CustomTemplateDB(Base):
+    """租户自定义工序模板"""
+
+    __tablename__ = "custom_templates"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "template_id", name="uq_custom_tpl_tenant_tpl"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    template_id = Column(String(50), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    industry = Column(String(50), nullable=False, default="自定义")
+    difficulty = Column(String(20), nullable=False, default="基础")
+    summary = Column(String(200), nullable=False, default="")
+    sop_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
 class DeviceDB(Base):
     """设备档案（心跳时更新，持久化）"""
 
@@ -233,6 +253,7 @@ __all__ = [
     "DEFAULT_TENANT_ID",
     "DEFAULT_TENANT_NAME",
     "ApiKeyDB",
+    "CustomTemplateDB",
     "DeviceCommandDB",
     "DeviceDB",
     "ExecutionRecord",

@@ -193,6 +193,81 @@ class MarketplaceApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertGreaterEqual(len(response.json()), 3)
 
+    def test_create_custom_template_and_apply(self):
+        payload = {
+            "template_id": "custom-demo",
+            "name": "自定义装配",
+            "industry": "电子装配",
+            "summary": "自建模板",
+            "sop": {
+                "sop_name": "自定义装配",
+                "steps": [
+                    {
+                        "step_id": 1,
+                        "name": "取料",
+                        "target_zone": "left_area",
+                        "required_gesture": "pinch",
+                        "hold_duration_sec": 1.0,
+                        "timeout_sec": 60,
+                    }
+                ],
+            },
+        }
+        created = self.client.post("/api/v1/marketplace/templates", json=payload)
+        self.assertEqual(created.status_code, 200, created.text)
+        self.assertEqual(created.json()["source"], "custom")
+
+        listed = self.client.get("/api/v1/marketplace/templates").json()
+        self.assertIn("custom-demo", [item["template_id"] for item in listed])
+
+        applied = self.client.post(
+            "/api/v1/marketplace/templates/custom-demo/apply", json={"activate": False}
+        )
+        self.assertEqual(applied.status_code, 200, applied.text)
+        self.assertEqual(applied.json()["name"], "自定义装配")
+
+        deleted = self.client.delete("/api/v1/marketplace/templates/custom-demo")
+        self.assertEqual(deleted.status_code, 200, deleted.text)
+
+    def test_duplicate_custom_template_conflict(self):
+        payload = {
+            "template_id": "custom-dup",
+            "name": "重复模板",
+            "sop": {
+                "sop_name": "重复模板",
+                "steps": [
+                    {
+                        "step_id": 1,
+                        "name": "取料",
+                        "target_zone": "left_area",
+                        "required_gesture": "pinch",
+                        "hold_duration_sec": 1.0,
+                        "timeout_sec": 60,
+                    }
+                ],
+            },
+        }
+        self.assertEqual(
+            self.client.post("/api/v1/marketplace/templates", json=payload).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post("/api/v1/marketplace/templates", json=payload).status_code, 409
+        )
+
+    def test_invalid_custom_template_rejected(self):
+        created = self.client.post(
+            "/api/v1/marketplace/templates",
+            json={"name": "空步骤", "sop": {"sop_name": "空步骤", "steps": []}},
+        )
+        self.assertEqual(created.status_code, 400)
+
+    def test_builtin_template_cannot_be_deleted(self):
+        response = self.client.delete(
+            "/api/v1/marketplace/templates/electronics-pcb-assembly"
+        )
+        self.assertEqual(response.status_code, 400)
+
+
 
 if __name__ == "__main__":
     unittest.main()

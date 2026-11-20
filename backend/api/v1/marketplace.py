@@ -17,7 +17,9 @@ from auth.dependencies import require_permission
 from database import get_db
 from dependencies import get_alarm_manager, get_execution_tracker, get_sop_manager
 from execution_tracker import ExecutionTracker
-from marketplace import template_registry
+from marketplace import custom_template_manager, template_registry
+from models import SOPDefinition
+from tenancy.context import get_tenant_id
 from repositories.sop_repo import SOPRepository
 from sop_manager import SOPManager
 
@@ -55,14 +57,66 @@ class ApplyTemplateRequest(BaseModel):
     name: Optional[str] = Field(default=None, max_length=100)
 
 
+class CustomTemplateRequest(BaseModel):
+    template_id: Optional[str] = Field(default=None, max_length=50)
+    name: str = Field(min_length=1, max_length=100)
+    industry: str = "自定义"
+    difficulty: str = "基础"
+    summary: str = ""
+    sop: dict
+
+
 @router.get(
     "/templates",
     response_model=List[TemplateInfo],
     dependencies=[Depends(require_permission("sop:view"))],
 )
-async def list_templates(industry: Optional[str] = None):
-    """模板列表，可按行业过滤"""
-    return template_registry.list_templates(industry)
+async def list_templates(
+    industry: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """模板列表：内置模板 + 本租户自定义模板"""
+    items = template_registry.list_templates(industry)
+    items.extend(custom_template_manager.summaries(db, get_tenant_id(), industry))
+    return items
+
+
+@router.post(
+    "/templates",
+    dependencies=[Depends(require_permission("sop:edit"))],
+)
+async def create_custom_template(
+    req: CustomTemplateRequest,
+    db: Session = Depends(get_db),
+):
+    """保存自定义模板（可视化编辑器的提交入口）"""
+    try:
+        row = custom_template_manager.create_custom(
+            db, get_tenant_id(), req.model_dump()
+        )
+    except custom_template_manager.TemplateConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except custom_template_manager.TemplateValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return custom_template_manager.describe(row)
+
+
+@router.delete(
+    "/templates/{template_id}",
+    dependencies=[Depends(require_permission("sop:edit"))],
+)
+async def delete_custom_template(
+    template_id: str,
+    db: Session = Depends(get_db),
+):
+    """删除自定义模板（内置模板不可删除）"""
+    if template_registry.get_template(template_id) is not None:
+        raise HTTPException(status_code=400, detail="内置模板不能删除")
+    if not custom_template_manager.delete_custom(
+        db, get_tenant_id(), template_id
+    ):
+        raise HTTPException(status_code=404, detail="模板不存在")
+    return {"ok": True}
 
 
 @router.get(
@@ -70,8 +124,11 @@ async def list_templates(industry: Optional[str] = None):
     response_model=TemplateDetail,
     dependencies=[Depends(require_permission("sop:view"))],
 )
-async def get_template(template_id: str):
+async def get_template(template_id: str, db: Session = Depends(get_db)):
     """模板详情（含完整步骤）"""
+    custom = custom_template_manager.get_custom(db, get_tenant_id(), template_id)
+    if custom is not None:
+        return custom_template_manager.describe(custom)
     detail = template_registry.describe(template_id)
     if not detail:
         raise HTTPException(status_code=404, detail="模板不存在")
@@ -91,11 +148,14 @@ async def apply_template(
     db: Session = Depends(get_db),
 ):
     """应用模板：写入本租户的数据库 SOP，可选立即激活"""
-    template = template_registry.get_template(template_id)
-    if not template:
-        raise HTTPException(status_code=404, detail="模板不存在")
-
-    definition = template["definition"]
+    custom = custom_template_manager.get_custom(db, get_tenant_id(), template_id)
+    if custom is not None:
+        definition = SOPDefinition(**json.loads(custom.sop_json))
+    else:
+        template = template_registry.get_template(template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="模板不存在")
+        definition = template["definition"]
     if req.name:
         definition = definition.model_copy(update={"sop_name": req.name.strip()})
 
