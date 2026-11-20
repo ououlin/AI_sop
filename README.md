@@ -1,187 +1,87 @@
-# AI SOP 装配线工序识别系统
+# AI SOP · 装配线工序识别系统
 
-> 基于 **MediaPipe 手部检测 + YOLOv8 物体检测 + 区域/手势/时序状态机** 的实时装配线工序识别系统。
->
-> **当前阶段**：P2 识别精度与生产化已完成，P3 商业化与规模化规划中。
+<p>
+  <img alt="Python" src="https://img.shields.io/badge/python-3.8%2B-3776AB?logo=python&logoColor=white">
+  <img alt="Node" src="https://img.shields.io/badge/node-18%2B-339933?logo=node.js&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.111%2B-009688?logo=fastapi&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white">
+  <img alt="Stage" src="https://img.shields.io/badge/P3-多租户进行中-fbbf24">
+</p>
 
-## 产品定位
+> 用普通 USB 摄像头 + 一台工位机，把装配工序变成可追溯的数据。
+> 摄像头看手、模型看物、状态机看顺序，替代人工巡检做 SOP 合规检查。
 
-面向中小制造企业的**轻量级SOP合规检查工具**，用摄像头+AI替代人工巡检，实时判断工人是否按SOP规范操作，实现装配过程的数字化追溯。
+面向中小制造企业的**轻量级 SOP 合规检查工具**：不需要工业相机，不需要改造产线，一台普通 PC 加一个摄像头即可部署。
 
-**差异化优势**：
-- 轻量化：USB摄像头+普通PC即可部署，不依赖工业相机
-- 低门槛：SOP可视化编辑，产线工程师可自助配置
-- 快速迭代：基于MediaPipe，算法更新快
-- 多工位：工位Agent+中央聚合服务+产线看板，支持产线级监控
+---
 
-## 功能特性
+## 目录
 
-### 核心能力
-- 海康USB摄像头实时采集（线程化低延迟，MSMF后端）
-- MediaPipe 双手21点骨架检测与可视化
-- 4种基础手势识别：张开 / 握拳 / 捏合 / 指向
-- 工作区域划分（左/中/右），实时判断手部所在区域
-- 工序步骤状态机：`待执行 → 进行中 → 已完成`，支持持续时长确认
-- 实时视频流 + 步骤进度 WebSocket 推送
+- [为什么用它](#为什么用它)
+- [核心能力](#核心能力)
+- [系统架构](#系统架构)
+- [快速开始](#快速开始)
+- [项目结构](#项目结构)
+- [测试](#测试)
+- [部署形态](#部署形态)
+- [文档](#文档)
+- [路线图](#路线图)
+- [贡献](#贡献)
+- [许可](#许可)
 
-### 工程化特性（P0已完成）
-- 全局异常处理中间件，统一错误响应格式
-- 处理循环守护机制，崩溃自动重启
-- 环境配置管理（`.env` 文件，多环境切换）
-- 日志系统（控制台+文件双输出，按大小滚动）
-- API版本化（`/api/v1/` 前缀，路由模块化）
+---
 
-### 功能增强（P1已完成）
-- SQLite 数据库集成，SOP定义和执行记录持久化
-- MJPEG 视频流，带宽降低 50%
-- SOP 可视化编辑器（步骤增删改、属性配置）
-- 执行记录查询（分页、筛选、详情）
-- 摄像头运行时切换，无需重启服务
+## 为什么用它
 
-### 识别精度与生产化（P2已完成）
-- **物体检测能力**：集成 YOLOv8（ObjectDetector），融合手部+物体多模态判定，降低误判率
-- **异常告警系统**：AlarmManager 统一管理告警生命周期，支持超时/物体缺失/顺序错误检测；多渠道通知（日志/Webhook/声音），跨线程安全派发
-- **多工位架构**：工位 Agent（StationReporter）定时上报状态到中央聚合服务（AggregationServer），产线看板实时聚合多工位进度与告警
-- **权限系统**：JWT + RBAC，三角色（操作员/线长/管理员），AuthMiddleware 拦截校验
-- **质检报告导出**：从当前执行状态生成报告，支持 JSON / 文本 / CSV 格式导出
-- **架构重构**：移除模块单例，改用 FastAPI `app.state` + `Depends` 依赖注入；主服务拆分为处理循环/WebSocket/依赖工厂模块
+| 传统做法 | 本系统 |
+|----------|--------|
+| 人工巡检，抽查靠人眼 | 摄像头全程判定，每一步都有时间戳与结果 |
+| 出了问题靠回忆和纸单 | 执行记录自动落库，可筛选、可导出质检报告 |
+| 换一条工序要重新培训 | SOP 可视化编辑，产线工程师自助配置 |
+| 多工位各自为政 | 工位 Agent + 中央聚合，产线看板一屏掌握 |
+| 试用一个点就得部署一套 | 数据面多租户，一套服务支撑多家客户 |
 
-## 产品路线图
+差异化：**轻量**（USB 摄像头即可）、**低门槛**（SOP 可自助配置）、**可追溯**（每次执行有完整记录）、**可扩展**（手势 + 物体 + 时序多模态判定）。
 
-| 阶段 | 状态 | 目标 | 文档 |
-|------|------|------|------|
-| **P0 稳定性与工程化** | ✅ 已完成 | 消除崩溃风险，建立工程化基础 | [P0-稳定性与工程化.md](docs/P0-稳定性与工程化.md) |
-| **P1 核心功能增强** | ✅ 已完成 | 提升核心功能可靠性与扩展性 | [P1-核心功能增强.md](docs/P1-核心功能增强.md) |
-| **P2 识别精度与生产化** | ✅ 已完成 | 从技术Demo升级为可售产品 | [P2-体验与部署.md](docs/P2-体验与部署.md) |
-| **P3 商业化与规模化** | 🚧 进行中 | 实现商业化落地与规模化交付 | [P3-商业化与规模化.md](docs/P3-商业化与规模化.md) |
-| **P3-M1 SaaS 多租户** | 🚧 阶段 0-3 完成 | 租户隔离、租户管理与开通、订阅配额 | [P3-M1-多租户实施计划.md](docs/P3-M1-多租户实施计划.md) |
+## 核心能力
 
-> 各阶段文档的索引、阅读路径与撰写规范见 [docs/README.md](docs/README.md)。
+| 能力 | 说明 |
+|------|------|
+| 手部识别 | MediaPipe 双手 21 点骨架，4 种手势（张开 / 握拳 / 捏合 / 指向） |
+| 区域判定 | 左 / 中 / 右 / 上区域划分，支持运行时标定并立即生效 |
+| 物体检测 | YOLOv8 融合判定；未安装时自动降级为颜色追踪 |
+| 步骤状态机 | 7 态（待执行 / 进行中 / 已完成 / 跳过 / 错误 / 超时 / 未授权跳过），支持持续时长确认 |
+| 异常告警 | 超时、顺序错误、物体缺失；日志 / Webhook / 声音多渠道 |
+| 执行记录 | 每次执行落库，支持按时间、状态、SOP 筛选 |
+| 质检报告 | JSON / 文本 / CSV / PDF / Excel 五种格式 |
+| 权限体系 | JWT + RBAC，四角色：操作员 / 线长 / 管理员 / 平台管理员 |
+| 多工位 | 工位 Agent 上报 → 中央聚合 → 产线看板 |
+| 多租户 | 租户数据隔离、订阅套餐、工位数配额、到期只读 |
 
-### P3 商业化方向
-1. **SaaS多租户平台**：订阅制计费，自助开通
-2. **算法市场**：行业工序模板+社区检测模型
-3. **设备管理**：远程运维+OTA算法热更新
-4. **BI报表**：OEE/FPY/CT等核心指标分析
-5. **开放平台**：REST API+Webhook+MES对接SDK
-
-## 目录结构
+## 系统架构
 
 ```
-AI_sop/
-├── backend/                        # Python 后端
-│   ├── main.py                     # FastAPI 主服务（应用装配与生命周期）
-│   ├── config.py                   # 全局配置（环境变量+部署开关）
-│   ├── dependencies.py             # 依赖注入工厂（app.state + Depends）
-│   ├── pipeline.py                 # 后台处理循环（采集→检测→识别→推送）
-│   ├── ws_server.py                # WebSocket 端点与客户端注册表
-│   ├── models.py                   # 数据模型 (Pydantic)
-│   ├── db_models.py                # 数据库模型 (SQLAlchemy)
-│   ├── database.py                 # 数据库初始化
-│   ├── camera_service.py           # 摄像头采集服务 (线程化)
-│   ├── hand_detector.py            # MediaPipe 手部检测
-│   ├── step_recognizer.py          # 步骤识别引擎 (状态机)
-│   ├── sop_manager.py              # SOP 工序管理
-│   ├── execution_tracker.py        # 执行记录跟踪（开始/同步/中断落库）
-│   ├── logging_config.py           # 日志配置
-│   ├── detectors/
-│   │   └── object_detector.py      # YOLOv8 物体检测
-│   ├── alarm/
-│   │   ├── alarm_manager.py        # 告警管理器（跨线程安全派发）
-│   │   └── notifiers.py            # 通知器（日志/Webhook/声音）
-│   ├── agent/
-│   │   └── station_reporter.py     # 工位状态上报器
-│   ├── central/
-│   │   └── aggregation_server.py   # 中央聚合服务+产线看板路由
-│   ├── auth/
-│   │   ├── jwt_handler.py          # JWT 签发与校验
-│   │   ├── role_checker.py         # RBAC 角色权限
-│   │   └── dependencies.py         # 接口权限依赖（require_permission）
-│   ├── middleware/
-│   │   ├── auth_middleware.py       # JWT 鉴权中间件
-│   │   └── error_handler.py        # 全局异常处理
-│   ├── reports/
-│   │   ├── report_generator.py     # 质检报告生成
-│   │   ├── pdf_renderer.py         # PDF 报告渲染（reportlab）
-│   │   └── excel_renderer.py       # Excel 报告渲染（openpyxl）
-│   ├── repositories/               # 数据访问层
-│   ├── saas/                       # 租户管理与订阅（SaaS 能力）
-│   ├── tenancy/                    # 租户上下文
-│   ├── tests/                      # 单元测试（unittest）
-│   └── api/v1/                     # REST API 路由
-│       ├── health.py               # 健康检查
-│       ├── sop.py                  # SOP 管理
-│       ├── camera.py               # 摄像头控制
-│       ├── video.py                # MJPEG/快照 视频流
-│       ├── records.py              # 执行记录
-│       ├── auth.py                 # 认证与用户管理
-│       └── reports.py              # 质检报告与告警
-├── frontend/                       # React 前端
-│   ├── src/
-│   │   ├── App.tsx                 # 主应用（组合 hooks）
-│   │   ├── components/
-│   │   │   ├── ErrorBoundary.tsx    # 错误边界+Toast+连接状态栏
-│   │   │   ├── VideoView.tsx        # 视频渲染
-│   │   │   ├── StepList.tsx         # 步骤列表
-│   │   │   ├── StepThumbnails.tsx   # 步骤缩略图
-│   │   │   ├── ControlPanel.tsx     # 控制面板
-│   │   │   ├── HandPanel.tsx        # 手部检测面板
-│   │   │   ├── SopSwitcher.tsx      # SOP 切换器
-│   │   │   ├── SopEditor.tsx        # SOP 可视化编辑器
-│   │   │   ├── StepEditor.tsx       # 步骤编辑器
-│   │   │   ├── RecordList.tsx       # 执行记录列表
-│   │   │   ├── CameraSelector.tsx   # 摄像头选择器
-│   │   │   ├── Login.tsx            # 登录页
-│   │   │   ├── LineDashboard.tsx    # 产线看板
-│   │   │   ├── ReportExport.tsx     # 质检报告导出
-│   │   │   └── ZoneCalibrator.tsx   # 工作区域标定工具（管理员）
-│   │   ├── hooks/
-│   │   │   ├── useWebSocket.ts      # WebSocket/REST 封装
-│   │   │   ├── useAuth.ts           # 登录态
-│   │   │   ├── useToast.ts          # Toast 消息
-│   │   │   ├── useSopStatus.ts      # SOP 状态快照
-│   │   │   └── useSopControl.ts     # SOP 控制操作
-│   │   ├── utils/api.ts             # fetch 封装（携带JWT）
-│   │   ├── types.ts                 # TypeScript 类型
-│   │   └── index.css                # 全局样式
-│   ├── vite.config.ts
-│   └── package.json
-├── sops/                           # SOP 工序定义
-│   └── assembly_demo.json          # PCB装配演示工序
-├── docs/                           # 产品规划文档
-│   ├── P0-稳定性与工程化.md
-│   ├── P1-核心功能增强.md
-│   ├── P2-体验与部署.md             # 识别精度与生产化
-│   └── P3-商业化与规模化.md         # 商业化与规模化
-└── README.md
+┌──────────┐   ┌──────────────┐   ┌─────────────────┐   ┌────────────────┐
+│ USB 摄像头│ → │ MediaPipe    │ → │ 步骤识别状态机   │ → │ WebSocket 推送 │
+│ 线程化采集│   │ 手部 21 点   │   │ 手势+区域+物体   │   │ MJPEG 视频流   │
+└──────────┘   └──────────────┘   └─────────────────┘   └────────────────┘
+                                           │
+                          ┌────────────────┼────────────────┐
+                          ▼                ▼                ▼
+                    ┌──────────┐    ┌────────────┐   ┌──────────────┐
+                    │ 异常告警 │    │ 执行记录落库│   │ 质检报告导出 │
+                    └──────────┘    └────────────┘   └──────────────┘
+
+                      多工位部署：工位 Agent ──HTTP──▶ 中央聚合服务 ──▶ 产线看板
 ```
 
-## 环境要求
-
-- Python 3.8+（当前开发环境 3.8.10）
-- Node.js >= 18
-- Windows（使用 MSMF 摄像头后端）
-
-## 模型文件
-
-模型权重体积较大，不纳入版本库（见 `.gitignore`），首次运行前需放到 `backend/` 目录：
-
-| 文件 | 用途 | 获取方式 |
-|------|------|----------|
-| `hand_landmarker.task` | MediaPipe 手部检测（必需） | 缺失时 `hand_detector.py` 会报错并给出下载命令；也可执行下方命令 |
-| `yolov8n.pt` | YOLOv8 物体检测（可选） | 安装 `ultralytics` 后首次运行自动下载；缺失时自动降级为颜色追踪 |
-
-```powershell
-Invoke-WebRequest `
-  -Uri 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task' `
-  -OutFile 'backend\hand_landmarker.task'
-```
+技术栈：后端 FastAPI + SQLAlchemy + MediaPipe + OpenCV；前端 React 18 + Vite + TypeScript；数据默认 SQLite，可切 PostgreSQL。
 
 ## 快速开始
 
-> 首次运行前，将 `backend/.env.example` 复制为 `backend/.env`：默认值即可跑通，生产环境务必修改 `JWT_SECRET` 与 `STATION_API_KEY`。
+**前置条件**：Python 3.8+、Node.js 18+、Windows（摄像头采集使用 MSMF 后端）、一个 USB 摄像头。
 
-### 1. 安装后端依赖
+### 1. 后端
 
 ```powershell
 cd backend
@@ -190,33 +90,65 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-> 若 `mediapipe` 安装较慢，可使用国内镜像：
-> `pip install mediapipe -i https://pypi.tuna.tsinghua.edu.cn/simple`
+### 2. 模型文件
 
-### 2. 启动后端服务
+模型权重体积较大，不纳入版本库，首次运行前需放到 `backend/`：
+
+| 文件 | 用途 | 获取方式 |
+|------|------|----------|
+| `hand_landmarker.task` | 手部检测（必需） | 缺失时启动会报错并给出下载命令 |
+| `yolov8n.pt` | 物体检测（可选） | 安装 `ultralytics` 后首次运行自动下载；缺失时降级为颜色追踪 |
 
 ```powershell
-cd backend
+Invoke-WebRequest `
+  -Uri 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task' `
+  -OutFile 'backend\hand_landmarker.task'
+```
+
+### 3. 配置与启动
+
+```powershell
+copy .env.example .env      # 默认值即可跑通；生产务必修改 JWT_SECRET 与 STATION_API_KEY
 python main.py
 ```
 
-后端启动后：
-- API 文档：http://localhost:8000/docs
-- 视频WebSocket：ws://localhost:8000/ws/video
-- 状态WebSocket：ws://localhost:8000/ws/status
-- MJPEG视频流：http://localhost:8000/api/v1/video/mjpeg
+启动后：API 文档 <http://localhost:8000/docs>，前端 <http://localhost:8000>（已构建前端时）。
 
-### 3. 启动前端
+### 4. 前端
 
 ```powershell
 cd frontend
 npm install
-npm run dev
+npm run dev          # 开发：http://localhost:5173
+npm run build        # 生产：产物由后端 /assets 静态托管
 ```
 
-访问 http://localhost:5173
+### 5. 默认账号
 
-默认账号：`admin` / `admin123`（管理员）、`supervisor` / `super123`（线长）、`operator` / `op123`（操作员）
+租户编码 `default`：`admin / admin123`（管理员）、`supervisor / super123`（线长）、`operator / op123`（操作员）。
+
+> 平台管理员账号通过 `PLATFORM_ADMIN_USERNAME` / `PLATFORM_ADMIN_PASSWORD` 环境变量创建，未配置密码则不创建。
+
+## 项目结构
+
+```
+AI_sop/
+├── backend/                 # FastAPI 服务
+│   ├── api/v1/              # REST 路由（sop / camera / video / records / auth / reports / tenant）
+│   ├── alarm/               # 告警管理与通知渠道
+│   ├── agent/ central/      # 工位上报与产线聚合
+│   ├── auth/ middleware/    # JWT + RBAC、认证与租户中间件
+│   ├── detectors/           # YOLOv8 物体检测
+│   ├── repositories/        # 数据访问层（按租户过滤）
+│   ├── saas/ tenancy/       # 租户、订阅与请求级租户上下文
+│   ├── schema.py            # 建表与轻量迁移
+│   └── tests/               # 单元测试
+├── frontend/                # React + Vite 前端
+│   └── src/                 # 组件、hooks、类型与样式
+├── docs/                    # 产品与工程文档（见下方「文档」）
+├── sops/                    # 示例 SOP 定义
+└── README.md
+```
 
 ## 测试
 
@@ -225,173 +157,50 @@ cd backend
 python -m unittest discover -s tests -t .
 ```
 
+当前覆盖：权限依赖、步骤状态机、区域热更新、执行记录落库、租户隔离与迁移、租户/套餐接口、到期只读、工位配额。
+
 ## 部署形态
 
-系统支持两种部署形态，通过环境变量切换：
+| 形态 | 适用场景 | 关键配置 |
+|------|----------|----------|
+| 单机部署 | 单工位试点 | 默认即可，聚合路由内嵌 |
+| 多工位 | 整条产线 | 工位侧 `ENABLE_LOCAL_AGGREGATION=false` + `CENTRAL_SERVER_URL`；中央侧配 `STATION_API_KEY` |
+| SaaS 多租户 | 多客户托管 | `DATABASE_URL` 指向 PostgreSQL，配置平台管理员后开通租户 |
 
-### 多租户说明
-- 数据面按租户隔离：用户、SOP、执行记录都带 `tenant_id`，从两张表到查询层全链路过滤
-- 登录时通过 `tenant` 字段指定租户编码，缺省为 `default`；Token 内携带租户信息
-- 识别流水线是单工位单租户的：一个进程服务一台设备，多租户共享的是 API 与数据库
-- 平台管理员（`platform_admin`）可在「更多工作台工具 → 平台管理」开通租户、变更套餐、切换租户视角
+> 识别流水线是**单工位单租户**的：一个进程服务一台设备。多租户共享的是 API 与数据库，不是同一路视频。
 
-### 单机部署（默认）
-- 工位识别与中央聚合在同一进程运行
-- `ENABLE_LOCAL_AGGREGATION=true`（默认）
-- 不设置 `CENTRAL_SERVER_URL`，或指向自身时自动跳过工位上报（避免 httpx 回环）
+详细步骤见 [部署指南](docs/部署指南.md)，环境变量见 [配置参考](docs/配置参考.md)。
 
-### 多工位部署
-- 各工位独立运行后端，仅做识别与上报
-- `ENABLE_LOCAL_AGGREGATION=false`（关闭本地聚合路由）
-- `CENTRAL_SERVER_URL=http://中央服务地址:端口` 指向独立部署的中央服务
-- 中央服务保持 `ENABLE_LOCAL_AGGREGATION=true`，接收多工位上报并对外提供产线看板
+## 文档
 
-> 强制让工位上报给自己（仅自测）：设置 `STATION_REPORT_TO_SELF=true`
-
-## 环境变量
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `HOST` | `0.0.0.0` | 服务监听地址 |
-| `PORT` | `8000` | 服务监听端口 |
-| `DATABASE_URL` | `sqlite:///backend/data/ai_sop.db` | 数据库连接串（PostgreSQL 见 P3 阶段 4） |
-| `DEFAULT_TENANT_CODE` | `default` | 默认租户编码，老数据与后台任务归属 |
-| `PLATFORM_ADMIN_USERNAME` | `platform` | 平台管理员账号（配置密码后自动创建） |
-| `PLATFORM_ADMIN_PASSWORD` | - | 平台管理员密码，留空则不创建 |
-| `CORS_ORIGINS` | dev默认 | 允许跨域来源（逗号分隔） |
-| `CAMERA_INDEX` | `0` | 摄像头索引 |
-| `CAMERA_WIDTH` / `CAMERA_HEIGHT` / `CAMERA_FPS` | `1280`/`720`/`30` | 摄像头参数 |
-| `JPEG_QUALITY` | `75` | 视频帧JPEG质量 |
-| `STATUS_INTERVAL` | `0.2` | 状态推送节流间隔(秒) |
-| `OBJECT_DETECTION_ENABLED` | `true` | 是否启用物体检测 |
-| `OBJECT_DETECTION_CONFIDENCE` | `0.5` | 物体检测置信度阈值 |
-| `YOLO_MODEL_PATH` | - | YOLOv8 模型路径 |
-| `ALARM_WEBHOOK_URL` | - | 告警 Webhook 地址 |
-| `ALARM_LEVEL_FILTER` | `warning` | Webhook 告警级别过滤 |
-| `ALARM_SOUND_ENABLED` | `true` | 是否启用声音告警 |
-| `JWT_SECRET` | 随机生成 | JWT 签名密钥；生产环境必须固定配置 |
-| `JWT_EXPIRE_HOURS` | `24` | 登录有效期（小时） |
-| `COOKIE_SECURE` | `false` | HTTPS 部署时设为 `true` |
-| `CENTRAL_SERVER_URL` | - | 中央聚合服务地址（多工位上报目标） |
-| `STATION_ID` | `W-001` | 当前工位ID |
-| `STATION_NAME` | `工位1` | 当前工位名称 |
-| `STATION_API_KEY` | - | 工位上报共享密钥；生产环境必须配置 |
-| `ENABLE_LOCAL_AGGREGATION` | `true` | 是否在本进程挂载聚合路由 |
-| `STATION_REPORT_TO_SELF` | `false` | 自调用时是否仍上报 |
-
-## SOP 工序定义
-
-SOP 以 JSON 文件存放在 `sops/` 目录，也支持通过数据库管理。字段说明：
-
-| 字段 | 说明 |
+| 文档 | 内容 |
 |------|------|
-| `sop_name` | 工序名称 |
-| `steps` | 步骤数组 |
-| `step.step_id` | 步骤ID |
-| `step.name` | 步骤名称 |
-| `step.target_zone` | 目标区域：`left_area` / `center_area` / `right_area` / `top_area` |
-| `step.required_gesture` | 所需手势：`open` / `fist` / `pinch` / `point` / `unknown`(不限) |
-| `step.hold_duration_sec` | 条件持续时长（秒），满足后判定完成 |
-| `step.required_objects` | 步骤要求物体（class_name/target_zone/min_count） |
-| `step.description` | 步骤描述 |
+| [文档索引](docs/README.md) | 全部文档导航、阶段总览与撰写规范 |
+| [API 参考](docs/API.md) | REST 接口、WebSocket、错误结构、SOP 格式、角色权限 |
+| [配置参考](docs/配置参考.md) | 环境变量清单与部署配置组合 |
+| [部署指南](docs/部署指南.md) | 单机 / 多工位 / SaaS / Docker 部署 |
+| [P2 识别精度与生产化](docs/P2-体验与部署.md) | 当前能力是怎么来的 |
+| [P3-M1 多租户实施计划](docs/P3-M1-多租户实施计划.md) | 当前正在做的事 |
 
-## REST API
+## 路线图
 
-### 系统
-| 方法 | 路径 | 说明 |
+| 阶段 | 主题 | 状态 |
 |------|------|------|
-| GET | `/api/v1/health` | 健康检查 |
+| P0 | 稳定性与工程化 | ✅ 已完成 |
+| P1 | 核心功能增强 | ✅ 已完成 |
+| P2 | 识别精度与生产化 | ✅ 已完成 |
+| P3 | 商业化与规模化 | 🚧 进行中 |
+| P3-M1 | SaaS 多租户（租户隔离 / 管理 / 订阅 / 前端） | 🚧 阶段 0-3 完成 |
+| P3-M1 阶段 4 | PostgreSQL、schema 级隔离、Alembic、Docker Compose | 🚧 进行中 |
+| P3-M2 ~ M5 | 算法市场 / 设备运维 / BI 报表 / 开放平台 | 📋 规划中 |
 
-### SOP 管理
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/sop/list` | 列出可用SOP |
-| POST | `/api/v1/sop/load` | 加载SOP（`source`：`file:xxx.json` 或 `db:{id}`） |
-| POST | `/api/v1/sop/start` | 开始/恢复 |
-| POST | `/api/v1/sop/pause` | 暂停 |
-| POST | `/api/v1/sop/reset` | 重置 |
-| POST | `/api/v1/sop/skip` | 跳过当前步骤 |
-| GET | `/api/v1/sop/status` | 获取当前状态 |
-| GET | `/api/v1/sop/zones` | 获取工作区域定义 |
-| POST | `/api/v1/sop/zones` | 更新工作区域（管理员，立即生效） |
-| GET | `/api/v1/sop/file/{filename}` | 读取 SOP 文件内容 |
-| GET | `/api/v1/sop/db/list` | 列出数据库中的 SOP |
-| GET | `/api/v1/sop/db/{id}` | 获取数据库 SOP 详情 |
-| POST | `/api/v1/sop/db/save` | 保存 SOP 到数据库（可选立即激活） |
-| DELETE | `/api/v1/sop/db/{id}` | 删除数据库中的 SOP |
+## 贡献
 
-### 视频与摄像头
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/video/mjpeg` | MJPEG视频流 |
-| GET | `/api/v1/video/snapshot` | 单帧快照 |
-| GET | `/api/v1/camera/list` | 列出可用摄像头 |
-| POST | `/api/v1/camera/switch` | 切换摄像头 |
+- 提交信息遵循 Conventional Commits：`feat(backend): ...`、`fix(frontend): ...`、`docs: ...`
+- 改动需配套测试；后端至少保证 `python -m unittest discover -s tests -t .` 全绿
+- 前端改动需通过 `npm run build`（含 TypeScript 类型检查）
+- 文档改动同步更新 [文档索引](docs/README.md)
 
-### 认证与用户（JWT）
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/auth/login` | 登录获取Token（同时写入 HttpOnly Cookie） |
-| POST | `/api/v1/auth/logout` | 退出登录（清除 Cookie） |
-| GET | `/api/v1/auth/me` | 获取当前用户 |
-| GET | `/api/v1/auth/users` | 用户列表（管理员） |
-| POST | `/api/v1/auth/users` | 创建用户（管理员） |
-| DELETE | `/api/v1/auth/users/{id}` | 删除用户（管理员） |
+## 许可
 
-### 执行记录
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/records` | 查询执行记录 |
-| GET | `/api/v1/records/{id}` | 执行记录详情 |
-
-### 质检报告与告警
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/reports/generate` | 生成JSON报告 |
-| POST | `/api/v1/reports/export/text` | 导出文本报告 |
-| POST | `/api/v1/reports/export/csv` | 导出CSV报告 |
-| POST | `/api/v1/reports/export/pdf` | 导出PDF报告（需 reportlab） |
-| POST | `/api/v1/reports/export/excel` | 导出Excel报告（需 openpyxl） |
-| GET | `/api/v1/reports/alarms` | 获取告警历史 |
-| POST | `/api/v1/reports/alarms/{id}/acknowledge` | 确认告警 |
-| DELETE | `/api/v1/reports/alarms` | 清除活跃告警 |
-
-### 租户管理（平台管理员）
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/tenants` | 租户列表（含用户数） |
-| POST | `/api/v1/tenants` | 开通租户并同步创建租户管理员 |
-| GET | `/api/v1/tenants/{id}` | 租户详情 |
-| PATCH | `/api/v1/tenants/{id}` | 更新名称 / 状态（active、suspended）/ 套餐 |
-| GET | `/api/v1/tenants/{id}/subscription` | 租户套餐、配额与到期状态 |
-| PUT | `/api/v1/tenants/{id}/subscription` | 变更套餐 / 设置到期时间（ISO 8601） |
-| GET | `/api/v1/plans` | 套餐目录（体验版 / 标准版 / 专业版 / 企业版） |
-
-> 订阅到期后租户进入只读：GET 放行，写操作返回 402；工位上报超过套餐上限返回 409。
-
-### 产线看板（中央聚合）
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/station/report` | 工位上报状态 |
-| GET | `/api/v1/stations` | 所有工位状态 |
-| GET | `/api/v1/stations/{id}` | 单工位详情 |
-| GET | `/api/v1/line/summary` | 产线整体摘要 |
-| DELETE | `/api/v1/stations/{id}` | 移除工位 |
-
-### WebSocket
-| 路径 | 说明 |
-|------|------|
-| `/ws/video` | 推送带骨架标注的视频帧(JPEG二进制)，需要登录 Cookie |
-| `/ws/status` | 推送步骤状态更新(JSON)，需要登录 Cookie |
-
-## 调试建议
-
-1. **摄像头无法打开**：确认索引正确，可调用 `GET /api/v1/camera/list` 查看可用设备，并检查摄像头是否被其他程序占用
-2. **手部检测不灵敏**：调整 `config.py` 中 `min_detection_confidence`（降低阈值更灵敏）
-3. **步骤误触发**：增大 `hold_duration_sec` 提高确认时长
-4. **区域不准**：通过视频画面观察手部位置，调整 `WORK_ZONES` 坐标
-5. **视频画面镜像**：已在 `VideoView.tsx` 中通过 `transform: scaleX(-1)` 处理
-6. **多工位上报无数据**：检查 `CENTRAL_SERVER_URL` 是否指向中央服务，且非自身端口（否则会被自调用检测跳过）
-7. **声音告警无播放**：确认 `ALARM_SOUND_ENABLED=true`；Windows 下确认系统未静音且浏览器允许自动播放音频
-8. **PDF/Excel 导出报 503**：后端未安装 `reportlab`（PDF）或 `openpyxl`（Excel），在 `backend/` 执行 `pip install -r requirements.txt`
-9. **区域标定**：通过 `/api/v1/sop/zones` 保存后会立即应用，并持久化到 `data/zones.json`
+本项目暂未指定开源许可证。如需对外开源，请补充 `LICENSE` 文件（如 MIT / Apache-2.0）。
