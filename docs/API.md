@@ -102,6 +102,8 @@
 | GET | `/marketplace/templates` | `sop:view` | 模板列表，`industry` 参数可按行业过滤 |
 | GET | `/marketplace/templates/{template_id}` | `sop:view` | 模板详情（含完整步骤） |
 | POST | `/marketplace/templates/{template_id}/apply` | `sop:edit` | 一键应用：写入本租户 SOP，`activate` 控制是否立即激活 |
+| POST | `/marketplace/templates` | `sop:edit` | 保存自定义模板（可视化编辑器入口） |
+| DELETE | `/marketplace/templates/{template_id}` | `sop:edit` | 删除自定义模板（内置模板不可删除） |
 | GET | `/marketplace/models` | `sop:view` | 检测模型目录 |
 
 ## 10. 设备运维
