@@ -8,8 +8,10 @@
    改为 ``(tenant_id, xxx)`` 复合唯一
 
 SQLite 不支持直接删除列上的 UNIQUE 约束，这里通过重建表实现；
-重建前把 ``.db`` 文件备份为 ``.db.bak``。阶段 3 引入 Alembic 后，
-本模块只保留迁移基线。
+重建前把 ``.db`` 文件备份为 ``.db.bak``。
+
+PostgreSQL 部署（``TENANT_SCHEMA``）会先创建对应 schema，
+建表落在该 schema 内，实现 schema 级隔离。
 """
 
 import logging
@@ -21,9 +23,9 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.schema import CreateTable
 
-from database import Base, engine
+from database import TENANT_SCHEMA, Base, engine
 import db_models  # noqa: F401  确保 ORM 模型注册到 Base.metadata
-from db_models import DEFAULT_TENANT_ID, DEFAULT_TENANT_CODE, DEFAULT_TENANT_NAME
+from db_models import DEFAULT_TENANT_CODE, DEFAULT_TENANT_ID, DEFAULT_TENANT_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +101,15 @@ def _backup_sqlite(bind: Engine) -> None:
         logger.warning("数据库备份失败，继续迁移: %s", exc)
 
 
+def _ensure_tenant_schema(bind: Engine) -> None:
+    """PostgreSQL：创建 TENANT_SCHEMA 指定的租户 schema。"""
+    if bind.dialect.name != "postgresql" or not TENANT_SCHEMA:
+        return
+    with bind.begin() as conn:
+        conn.exec_driver_sql('CREATE SCHEMA IF NOT EXISTS "{}"'.format(TENANT_SCHEMA))
+    logger.info("租户 schema 就绪: %s", TENANT_SCHEMA)
+
+
 def _ensure_default_tenant(bind: Engine) -> None:
     with bind.begin() as conn:
         exists = conn.execute(
@@ -129,6 +140,21 @@ def _ensure_default_tenant(bind: Engine) -> None:
                 {"id": DEFAULT_TENANT_ID, "code": DEFAULT_TENANT_CODE, "name": DEFAULT_TENANT_NAME},
             )
     logger.info("已确保默认租户存在: %s (id=%d)", DEFAULT_TENANT_CODE, DEFAULT_TENANT_ID)
+
+
+def _ensure_subscriptions(bind: Engine) -> None:
+    """为没有订阅记录的租户补一条默认套餐订阅。"""
+    with bind.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO subscriptions "
+                "(tenant_id, plan_code, status, started_at, created_at, updated_at) "
+                "SELECT t.id, COALESCE(t.plan_code, 'free'), 'active', "
+                "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP "
+                "FROM tenants t "
+                "WHERE NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.tenant_id = t.id)"
+            )
+        )
 
 
 def _add_tenant_column(bind: Engine, table: str) -> None:
@@ -195,29 +221,12 @@ def _upgrade_generic(bind: Engine) -> None:
         if "tenant_id" not in _columns(bind, table):
             _add_tenant_column(bind, table)
 
-    logger.warning(
-        "非 SQLite 数据库未自动重建唯一约束；PostgreSQL 部署请在阶段 4 通过 Alembic 迁移"
-    )
-
-
-def _ensure_subscriptions(bind: Engine) -> None:
-    """为没有订阅记录的租户补一条默认套餐订阅。"""
-    with bind.begin() as conn:
-        conn.execute(
-            text(
-                "INSERT INTO subscriptions "
-                "(tenant_id, plan_code, status, started_at, created_at, updated_at) "
-                "SELECT t.id, COALESCE(t.plan_code, 'free'), 'active', "
-                "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP "
-                "FROM tenants t "
-                "WHERE NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.tenant_id = t.id)"
-            )
-        )
-
 
 def ensure_schema(bind: Optional[Engine] = None) -> None:
     """建表 + 幂等迁移，可重复调用。"""
     bind = bind or engine
+
+    _ensure_tenant_schema(bind)
 
     pending = {table for table in _TENANT_TABLES if _needs_upgrade(bind, table)}
     if pending:

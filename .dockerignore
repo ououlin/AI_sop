@@ -1,0 +1,23 @@
+.git
+.gitignore
+.gitattributes
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+
+# 运行期数据与密钥不进入镜像
+backend/data
+backend/logs
+backend/.env
+backend/*.pt
+backend/*.task
+
+# 前端依赖与产物由构建阶段生成
+frontend/node_modules
+frontend/dist
+
+# 文档与本地脚本
+docs
+*.log
+*.bak

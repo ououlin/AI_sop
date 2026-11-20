@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ai_sop
+      POSTGRES_USER: ai_sop
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_sop_dev_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_sop -d ai_sop"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ai_sop:${POSTGRES_PASSWORD:-ai_sop_dev_password}@postgres:5432/ai_sop
+      # 生产环境务必通过 .env 或密钥管理覆盖以下两项
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      STATION_API_KEY: ${STATION_API_KEY:-}
+      PLATFORM_ADMIN_USERNAME: ${PLATFORM_ADMIN_USERNAME:-platform}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+      # 可选：PostgreSQL schema 级隔离（一个部署服务一个租户）
+      TENANT_SCHEMA: ${TENANT_SCHEMA:-}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
