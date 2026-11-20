@@ -190,8 +190,7 @@ python -m unittest discover -s tests -t .
 | P1 | 核心功能增强 | ✅ 已完成 |
 | P2 | 识别精度与生产化 | ✅ 已完成 |
 | P3 | 商业化与规模化 | 🚧 进行中 |
-| P3-M1 | SaaS 多租户（租户隔离 / 管理 / 订阅 / 前端） | 🚧 阶段 0-3 完成 |
-| P3-M1 阶段 4 | PostgreSQL、schema 级隔离、Alembic、Docker Compose | 🚧 进行中 |
+| P3-M1 | SaaS 多租户（隔离 / 管理 / 订阅 / 前端 / 部署） | ✅ 已完成 |
 | P3-M2 ~ M5 | 算法市场 / 设备运维 / BI 报表 / 开放平台 | 📋 规划中 |
 
 ## 贡献
