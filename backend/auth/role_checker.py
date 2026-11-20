@@ -69,6 +69,7 @@ PUBLIC_PATHS = {
     "/api/v1/auth/login",
     "/api/v1/auth/logout",
     "/api/v1/station/report",
+    "/api/v1/station/ack",
     "/api/v1/health",
     "/docs",
     "/openapi.json",

@@ -1783,3 +1783,75 @@ body { overflow: auto; background: #0c1117; }
   color: var(--text);
 }
 .template-models th { color: var(--text-dim); font-weight: 500; }
+
+/* ===== 设备运维 ===== */
+.device-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 12px;
+}
+.device-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.device-chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.device-chip.ok { color: var(--green); border-color: rgba(52, 211, 153, 0.4); }
+.device-chip.warn { color: var(--orange); border-color: rgba(251, 191, 36, 0.4); }
+.device-chip.err { color: var(--red); border-color: rgba(248, 113, 113, 0.4); }
+.device-refresh {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--panel-light);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 3px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.device-row { cursor: pointer; }
+.device-row.selected td { background: rgba(74, 158, 255, 0.08); }
+.device-row td small { display: block; color: var(--text-dim); font-size: 10px; margin-top: 2px; }
+.device-health { padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); }
+.device-health.healthy { color: var(--green); border-color: rgba(52, 211, 153, 0.4); }
+.device-health.warning { color: var(--orange); border-color: rgba(251, 191, 36, 0.4); }
+.device-health.offline { color: var(--red); border-color: rgba(248, 113, 113, 0.4); }
+.device-panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  background: rgba(20, 27, 36, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.device-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.device-actions label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.device-actions input,
+.device-actions select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  color: var(--text);
+  font-size: 12px;
+}
+.device-actions button {
+  border: 1px solid rgba(74, 158, 255, 0.5);
+  background: rgba(74, 158, 255, 0.16);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.device-actions button:disabled { opacity: 0.5; cursor: not-allowed; }

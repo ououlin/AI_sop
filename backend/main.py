@@ -62,6 +62,7 @@ from api.v1.reports import router as reports_router
 from api.v1.tenant import router as tenant_router
 from api.v1.subscription import plans_router, router as subscription_router
 from api.v1.marketplace import router as marketplace_router
+from api.v1.ops import agent_router as ops_agent_router, router as ops_router
 from central.aggregation_server import router as line_router
 from agent.station_reporter import StationReporter
 
@@ -201,6 +202,8 @@ app.include_router(tenant_router, prefix="/api/v1")
 app.include_router(subscription_router, prefix="/api/v1")
 app.include_router(plans_router, prefix="/api/v1")
 app.include_router(marketplace_router, prefix="/api/v1")
+app.include_router(ops_router, prefix="/api/v1")
+app.include_router(ops_agent_router, prefix="/api/v1")
 # 中央聚合路由（产线看板）：受 ENABLE_LOCAL_AGGREGATION 控制
 if ENABLE_LOCAL_AGGREGATION:
     app.include_router(line_router, prefix="/api/v1")

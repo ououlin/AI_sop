@@ -17,7 +17,8 @@ from pydantic import BaseModel, Field
 
 from sqlalchemy.orm import Session
 
-from dependencies import get_aggregation_server
+from dependencies import get_aggregation_server, get_device_manager
+from ops.device_manager import DeviceManager
 from auth.dependencies import require_permission
 from database import get_db
 from saas import subscription, tenant_manager
@@ -43,6 +44,10 @@ class StationReport(BaseModel):
     hold_duration_sec: float = 1.0
     alarms: List[dict] = Field(default_factory=list)
     fps: float = 0.0
+    app_version: str = ""
+    model_version: str = ""
+    camera_ok: bool = True
+    latency_ms: float = 0.0
     timestamp: str = ""
 
 
@@ -100,6 +105,10 @@ class AggregationServer:
         info.hold_duration_sec = report.hold_duration_sec
         info.alarms = report.alarms
         info.fps = report.fps
+        info.app_version = report.app_version
+        info.model_version = report.model_version
+        info.camera_ok = report.camera_ok
+        info.latency_ms = report.latency_ms
         info.is_online = True
         info.last_heartbeat = datetime.now()
         return info
@@ -161,9 +170,10 @@ async def report_station(
     report: StationReport,
     x_station_key: Optional[str] = Header(default=None),
     aggregation_server: AggregationServer = Depends(get_aggregation_server),
+    device_manager: DeviceManager = Depends(get_device_manager),
     db: Session = Depends(get_db),
 ):
-    """工位上报状态（按租户校验订阅与工位配额）"""
+    """工位上报状态（按租户校验订阅与工位配额，并下发运维命令）"""
     expected_key = os.getenv("STATION_API_KEY", "")
     if expected_key and x_station_key != expected_key:
         raise HTTPException(status_code=401, detail="工位密钥无效")
@@ -199,6 +209,7 @@ async def report_station(
         "station_id": info.station_id,
         "is_online": info.is_online,
         "tenant_id": tenant.id,
+        "commands": device_manager.pending(report.station_id),
     }
 
 

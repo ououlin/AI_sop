@@ -44,6 +44,11 @@ def get_execution_tracker(request: Request):
     return request.app.state.execution_tracker
 
 
+def get_device_manager(request: Request):
+    """设备运维控制面"""
+    return request.app.state.device_manager
+
+
 def init_app_state(app) -> None:
     """
     创建所有共享服务实例并挂到 app.state。
@@ -57,6 +62,7 @@ def init_app_state(app) -> None:
     from central.aggregation_server import AggregationServer
     from execution_tracker import ExecutionTracker
     from database import SessionLocal
+    from ops.device_manager import DeviceManager
 
     app.state.camera = CameraService()
     app.state.detector = HandDetector()
@@ -77,3 +83,4 @@ def init_app_state(app) -> None:
     app.state.aggregation_server = AggregationServer()
     app.state.execution_tracker = ExecutionTracker()
     app.state.session_factory = SessionLocal
+    app.state.device_manager = DeviceManager()

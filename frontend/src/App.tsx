@@ -20,6 +20,7 @@ import ReportExport from './components/ReportExport'
 import ZoneCalibrator from './components/ZoneCalibrator'
 import TenantManagement from './components/TenantManagement'
 import TemplateLibrary from './components/TemplateLibrary'
+import DeviceManagement from './components/DeviceManagement'
 import { getActiveTenantId, setActiveTenantId } from './utils/api'
 import type { StatusMessage, ConnectionState } from './types'
 import './index.css'
@@ -211,6 +212,7 @@ export default function App() {
               {can('camera:view') && <section className="panel-card"><div className="section-heading"><h2>摄像头</h2></div><CameraSelector currentIndex={cameraIndex} canManage={can('camera:manage')} />{can('camera:manage') && <ZoneCalibrator videoDataUrl={dataUrl} />}</section>}
               {can('record:export') && <section className="panel-card"><div className="section-heading"><h2>质检报告</h2></div><ReportExport /></section>}
               {can('line:view') && <section className="panel-card tool-wide"><div className="section-heading"><h2>产线看板</h2></div><LineDashboard /></section>}
+              {can('station:view') && <section className="panel-card tool-wide"><div className="section-heading"><h2>设备运维</h2><span>健康监控 · 配置下发 · 远程升级</span></div><DeviceManagement /></section>}
               {can('tenant:manage') && <section className="panel-card tool-wide"><div className="section-heading"><h2>平台管理</h2><span>租户与套餐</span></div><TenantManagement /></section>}
               <section className="panel-card"><div className="section-heading"><h2>手部识别</h2></div><HandPanel hands={hands} connected={statusConn} /></section>
             </div>

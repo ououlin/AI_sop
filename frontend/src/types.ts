@@ -148,6 +148,40 @@ export interface MarketModel {
   note: string
 }
 
+/** 设备运维 */
+export interface DeviceCommand {
+  command_id: string
+  device_id: string
+  type: string
+  payload: Record<string, unknown>
+  status: string
+}
+
+export interface DeviceHealth {
+  device_id: string
+  name: string
+  status: string
+  health: 'healthy' | 'warning' | 'offline' | string
+  issues: string[]
+  app_version: string
+  model_version: string
+  camera_ok: boolean
+  fps: number
+  latency_ms: number
+  last_heartbeat: string
+  config_version: number
+  pending_commands: number
+  last_ack: { command_id: string; status: string; message: string; type: string } | null
+  commands?: DeviceCommand[]
+}
+
+export interface ModelVersionInfo {
+  model_id: string
+  version: string
+  channel: string
+  notes: string
+}
+
 /** Toast 消息 */
 export interface ToastItem {
   id: number

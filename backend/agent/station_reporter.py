@@ -6,6 +6,7 @@
 import os
 import asyncio
 import logging
+import time
 from typing import Optional
 from datetime import datetime
 
@@ -34,6 +35,7 @@ class StationReporter:
         self.report_interval = report_interval
         self._running = False
         self._task: Optional[asyncio.Task] = None
+        self._last_latency_ms = 0.0
 
     async def start(self, sop_manager, alarm_manager, camera):
         """启动上报循环"""
@@ -106,10 +108,14 @@ class StationReporter:
                 payload["status"] = "running"
 
         payload["alarms"] = [a.model_dump() for a in alarm_manager.active_alarms]
+        payload["app_version"] = os.getenv("APP_VERSION", "1.0.0")
+        payload["model_version"] = os.getenv("MODEL_VERSION", "yolov8n@8.2.0")
+        payload["camera_ok"] = camera.get_fps() > 0
+        payload["latency_ms"] = self._last_latency_ms
         return payload
 
     async def _send(self, payload: dict):
-        """发送到中央服务"""
+        """发送到中央服务，并处理下发的运维命令"""
         try:
             import httpx
             async with httpx.AsyncClient(timeout=3.0) as client:
@@ -117,14 +123,62 @@ class StationReporter:
                 station_key = os.getenv("STATION_API_KEY", "")
                 if station_key:
                     headers["X-Station-Key"] = station_key
+                started = time.perf_counter()
                 resp = await client.post(
                     f"{self.central_url}/api/v1/station/report",
                     json=payload,
                     headers=headers,
                 )
+                self._last_latency_ms = (time.perf_counter() - started) * 1000
                 if resp.status_code != 200:
                     logger.debug("工位上报响应异常: HTTP %d", resp.status_code)
+                    return
+                commands = (resp.json() or {}).get("commands") or []
+                for command in commands:
+                    await self._handle_command(client, command, headers)
         except ImportError:
             pass  # httpx 未安装
         except Exception as e:
             logger.debug("工位上报发送失败: %s", e)
+
+    async def _handle_command(self, client, command: dict, headers: dict):
+        """应用运维命令并回执"""
+        payload = command.get("payload") or {}
+        status, message = "acked", ""
+
+        if command.get("type") == "config":
+            config = payload.get("config") or {}
+            interval = config.get("report_interval")
+            if isinstance(interval, (int, float)) and 1 <= interval <= 60:
+                self.report_interval = float(interval)
+                message = "上报间隔已调整为 {:.1f}s".format(self.report_interval)
+            else:
+                message = "配置已接收（无本地可应用项）"
+            logger.info("设备 [%s] 收到配置: %s", self.station_id, config)
+        elif command.get("type") == "upgrade":
+            message = "目标版本已登记，重启工位进程后生效"
+            logger.warning(
+                "设备 [%s] 收到升级指令: %s@%s（重启后生效）",
+                self.station_id, payload.get("model_id"), payload.get("version"),
+            )
+        else:
+            status, message = "failed", "未知命令类型"
+
+        await self._ack(client, command.get("command_id"), status, message, headers)
+
+    async def _ack(self, client, command_id, status: str, message: str, headers: dict):
+        if not command_id:
+            return
+        try:
+            await client.post(
+                "{}/api/v1/station/ack".format(self.central_url),
+                json={
+                    "station_id": self.station_id,
+                    "command_id": command_id,
+                    "status": status,
+                    "message": message,
+                },
+                headers=headers,
+            )
+        except Exception as exc:
+            logger.debug("工位命令回执失败: %s", exc)

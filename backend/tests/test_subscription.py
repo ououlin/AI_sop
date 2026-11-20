@@ -17,8 +17,9 @@ from central.aggregation_server import router as line_router
 from database import Base
 from database import get_db as real_get_db
 from db_models import SubscriptionDB, TenantDB
-from dependencies import get_aggregation_server
+from dependencies import get_aggregation_server, get_device_manager
 from middleware.tenant_middleware import TenantMiddleware
+from ops.device_manager import DeviceManager
 from saas import subscription
 
 
@@ -189,6 +190,7 @@ class StationQuotaTests(_BaseApiTest):
         app = FastAPI()
         app.dependency_overrides[real_get_db] = self._get_db_override()
         app.dependency_overrides[get_aggregation_server] = lambda: self.aggregation
+        app.dependency_overrides[get_device_manager] = lambda: DeviceManager()
         app.include_router(line_router, prefix="/api/v1")
         self.client = TestClient(app)
 
