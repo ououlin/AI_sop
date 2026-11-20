@@ -65,7 +65,7 @@
 ## 目录结构
 
 ```
-g:\ai_sop\
+AI_sop/
 ├── backend/                        # Python 后端
 │   ├── main.py                     # FastAPI 主服务（应用装配与生命周期）
 │   ├── config.py                   # 全局配置（环境变量+部署开关）
@@ -79,6 +79,7 @@ g:\ai_sop\
 │   ├── hand_detector.py            # MediaPipe 手部检测
 │   ├── step_recognizer.py          # 步骤识别引擎 (状态机)
 │   ├── sop_manager.py              # SOP 工序管理
+│   ├── execution_tracker.py        # 执行记录跟踪（开始/同步/中断落库）
 │   ├── logging_config.py           # 日志配置
 │   ├── detectors/
 │   │   └── object_detector.py      # YOLOv8 物体检测
@@ -91,7 +92,8 @@ g:\ai_sop\
 │   │   └── aggregation_server.py   # 中央聚合服务+产线看板路由
 │   ├── auth/
 │   │   ├── jwt_handler.py          # JWT 签发与校验
-│   │   └── role_checker.py         # RBAC 角色权限
+│   │   ├── role_checker.py         # RBAC 角色权限
+│   │   └── dependencies.py         # 接口权限依赖（require_permission）
 │   ├── middleware/
 │   │   ├── auth_middleware.py       # JWT 鉴权中间件
 │   │   └── error_handler.py        # 全局异常处理
@@ -100,6 +102,7 @@ g:\ai_sop\
 │   │   ├── pdf_renderer.py         # PDF 报告渲染（reportlab）
 │   │   └── excel_renderer.py       # Excel 报告渲染（openpyxl）
 │   ├── repositories/               # 数据访问层
+│   ├── tests/                      # 单元测试（unittest）
 │   └── api/v1/                     # REST API 路由
 │       ├── health.py               # 健康检查
 │       ├── sop.py                  # SOP 管理
@@ -154,7 +157,24 @@ g:\ai_sop\
 - Node.js >= 18
 - Windows（使用 MSMF 摄像头后端）
 
+## 模型文件
+
+模型权重体积较大，不纳入版本库（见 `.gitignore`），首次运行前需放到 `backend/` 目录：
+
+| 文件 | 用途 | 获取方式 |
+|------|------|----------|
+| `hand_landmarker.task` | MediaPipe 手部检测（必需） | 缺失时 `hand_detector.py` 会报错并给出下载命令；也可执行下方命令 |
+| `yolov8n.pt` | YOLOv8 物体检测（可选） | 安装 `ultralytics` 后首次运行自动下载；缺失时自动降级为颜色追踪 |
+
+```powershell
+Invoke-WebRequest `
+  -Uri 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task' `
+  -OutFile 'backend\hand_landmarker.task'
+```
+
 ## 快速开始
+
+> 首次运行前，将 `backend/.env.example` 复制为 `backend/.env`：默认值即可跑通，生产环境务必修改 `JWT_SECRET` 与 `STATION_API_KEY`。
 
 ### 1. 安装后端依赖
 
@@ -191,6 +211,13 @@ npm run dev
 
 默认账号：`admin` / `admin123`（管理员）、`supervisor` / `super123`（线长）、`operator` / `op123`（操作员）
 
+## 测试
+
+```powershell
+cd backend
+python -m unittest discover -s tests -t .
+```
+
 ## 部署形态
 
 系统支持两种部署形态，通过环境变量切换：
@@ -225,10 +252,13 @@ npm run dev
 | `ALARM_WEBHOOK_URL` | - | 告警 Webhook 地址 |
 | `ALARM_LEVEL_FILTER` | `warning` | Webhook 告警级别过滤 |
 | `ALARM_SOUND_ENABLED` | `true` | 是否启用声音告警 |
-| `JWT_SECRET` | - | JWT 签名密钥 |
+| `JWT_SECRET` | 随机生成 | JWT 签名密钥；生产环境必须固定配置 |
+| `JWT_EXPIRE_HOURS` | `24` | 登录有效期（小时） |
+| `COOKIE_SECURE` | `false` | HTTPS 部署时设为 `true` |
 | `CENTRAL_SERVER_URL` | - | 中央聚合服务地址（多工位上报目标） |
 | `STATION_ID` | `W-001` | 当前工位ID |
 | `STATION_NAME` | `工位1` | 当前工位名称 |
+| `STATION_API_KEY` | - | 工位上报共享密钥；生产环境必须配置 |
 | `ENABLE_LOCAL_AGGREGATION` | `true` | 是否在本进程挂载聚合路由 |
 | `STATION_REPORT_TO_SELF` | `false` | 自调用时是否仍上报 |
 
@@ -315,12 +345,12 @@ SOP 以 JSON 文件存放在 `sops/` 目录，也支持通过数据库管理。�
 ### WebSocket
 | 路径 | 说明 |
 |------|------|
-| `/ws/video` | 推送带骨架标注的视频帧(JPEG二进制) |
-| `/ws/status` | 推送步骤状态更新(JSON) |
+| `/ws/video` | 推送带骨架标注的视频帧(JPEG二进制)，需要登录 Cookie |
+| `/ws/status` | 推送步骤状态更新(JSON)，需要登录 Cookie |
 
 ## 调试建议
 
-1. **摄像头无法打开**：确认索引正确，运行 `python test_camera.py` 排查
+1. **摄像头无法打开**：确认索引正确，可调用 `GET /api/v1/camera/list` 查看可用设备，并检查摄像头是否被其他程序占用
 2. **手部检测不灵敏**：调整 `config.py` 中 `min_detection_confidence`（降低阈值更灵敏）
 3. **步骤误触发**：增大 `hold_duration_sec` 提高确认时长
 4. **区域不准**：通过视频画面观察手部位置，调整 `WORK_ZONES` 坐标
@@ -328,4 +358,4 @@ SOP 以 JSON 文件存放在 `sops/` 目录，也支持通过数据库管理。�
 6. **多工位上报无数据**：检查 `CENTRAL_SERVER_URL` 是否指向中央服务，且非自身端口（否则会被自调用检测跳过）
 7. **声音告警无播放**：确认 `ALARM_SOUND_ENABLED=true`；Windows 下确认系统未静音且浏览器允许自动播放音频
 8. **PDF/Excel 导出报 503**：后端未安装 `reportlab`（PDF）或 `openpyxl`（Excel），在 `backend/` 执行 `pip install -r requirements.txt`
-9. **区域标定不生效**：通过 `/api/v1/sop/zones` 保存后需重启后端以加载 `data/zones.json`
+9. **区域标定**：通过 `/api/v1/sop/zones` 保存后会立即应用，并持久化到 `data/zones.json`
