@@ -80,9 +80,10 @@ assert hmac.compare_digest(expected, provided)
 ## 5. 配额与限制
 
 - API Key 属于租户，只能看到该租户数据
-- 分页 `limit` 上限 100
-- 分析接口 `days` 上限 90
-- Webhook 当前只支持 http(s)，无签名校验（`X-AI-SOP-Secret` 供业务侧自行比对）
+- 分页 `limit` 上限 100，分析接口 `days` 上限 90
+- 限流：每个 API Key 默认 120 次/分钟（`OPEN_API_RATE_LIMIT_PER_MIN` 可调），
+  超限返回 429 并带 `Retry-After`；限流为进程内计数，多实例部署时每实例独立配额
+- Webhook 支持 HMAC-SHA256 签名与失败重试，当前只支持 http(s) 回调地址
 
 ## 6. SDK
 
